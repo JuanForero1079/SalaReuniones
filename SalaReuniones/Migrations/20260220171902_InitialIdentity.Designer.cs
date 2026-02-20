@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SalaReuniones.Data;
 
@@ -11,9 +12,11 @@ using SalaReuniones.Data;
 namespace SalaReuniones.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260220171902_InitialIdentity")]
+    partial class InitialIdentity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -51,19 +54,19 @@ namespace SalaReuniones.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "a1b2c3d4-e5f6-4711-aaaa-bbbbcccc0001",
+                            Id = "1",
                             Name = "Administrador",
                             NormalizedName = "ADMINISTRADOR"
                         },
                         new
                         {
-                            Id = "a1b2c3d4-e5f6-4711-aaaa-bbbbcccc0002",
+                            Id = "2",
                             Name = "Usuario",
                             NormalizedName = "USUARIO"
                         },
                         new
                         {
-                            Id = "a1b2c3d4-e5f6-4711-aaaa-bbbbcccc0003",
+                            Id = "3",
                             Name = "Visualizador",
                             NormalizedName = "VISUALIZADOR"
                         });

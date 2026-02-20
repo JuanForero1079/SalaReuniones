@@ -1,45 +1,127 @@
 using SalaReuniones.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.SqlClient; // Para obtener info de la conexión
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// =============================
+// SERVICIOS
+// =============================
+
+// MVC (Controladores + Vistas)
 builder.Services.AddControllersWithViews();
 
-// Aquí agregamos la conexión a la base de datos
+// Configuración de DbContext con SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Configuración de Identity
+builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+{
+    // No requiere confirmación de cuenta al registrarse
+    options.SignIn.RequireConfirmedAccount = false;
+
+    // Configuración de contraseñas (opcional)
+    options.Password.RequireDigit = false;
+    options.Password.RequiredLength = 6;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireLowercase = false;
+})
+.AddRoles<IdentityRole>() // Habilita roles (Administrador, Usuario, Visualizador)
+.AddEntityFrameworkStores<ApplicationDbContext>();
+
+// =============================
+// CONSTRUCCIÓN DE LA APP
+// =============================
 var app = builder.Build();
 
-// === Mostramos info de la conexión EF Core al iniciar ===
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var connection = context.Database.GetDbConnection();
-    Console.WriteLine("=== Conexión EF Core ===");
-    Console.WriteLine($"Servidor: {connection.DataSource}");
-    Console.WriteLine($"Base de datos: {connection.Database}");
-    Console.WriteLine($"Estado de conexión: {connection.State}");
-}
+// =============================
+// PIPELINE HTTP
+// =============================
 
-// Configure the HTTP request pipeline.
+// Manejo de errores y HSTS en producción
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
+// Redirección HTTPS y archivos estáticos
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+// Routing
 app.UseRouting();
 
+// ===== Identity =====
+
+// Primero: Authentication (login)
+app.UseAuthentication();
+
+// Segundo: Authorization (roles, permisos)
 app.UseAuthorization();
 
+// =============================
+// MAPEO DE RUTAS
+// =============================
+
+// Ruta por defecto: Home/Index
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Reservas}/{action=Index}/{id?}");
 
+// Mapear páginas de Identity (Login, Register, Logout, Manage, etc.)
+app.MapRazorPages();
+
+// =============================
+// INICIALIZAR ROLES Y USUARIOS DE PRUEBA
+// =============================
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+
+    // Manejo de roles y usuarios
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+
+    // Lista de roles que queremos crear
+    string[] roles = { "Administrador", "Usuario", "Visualizador" };
+
+    foreach (var role in roles)
+    {
+        if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
+        {
+            roleManager.CreateAsync(new IdentityRole(role)).GetAwaiter().GetResult();
+            Console.WriteLine($"Rol creado: {role}");
+        }
+    }
+
+    // Función para crear usuario de prueba si no existe
+    void CreateUserIfNotExists(string email, string password, string role)
+    {
+        var user = userManager.FindByEmailAsync(email).GetAwaiter().GetResult();
+        if (user == null)
+        {
+            user = new IdentityUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true
+            };
+            userManager.CreateAsync(user, password).GetAwaiter().GetResult();
+            userManager.AddToRoleAsync(user, role).GetAwaiter().GetResult();
+            Console.WriteLine($"Usuario creado: {email} con rol {role}");
+        }
+    }
+
+    // Crear usuarios de prueba
+    CreateUserIfNotExists("admin@empresa.com", "Admin123!", "Administrador");
+    CreateUserIfNotExists("usuario@empresa.com", "User123!", "Usuario");
+    CreateUserIfNotExists("visor@empresa.com", "View123!", "Visualizador");
+}
+
+// =============================
+// EJECUCIÓN
+// =============================
 app.Run();
