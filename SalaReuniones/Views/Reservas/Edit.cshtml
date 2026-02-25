@@ -1,59 +1,95 @@
 ﻿@model SalaReuniones.Models.Reserva
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Editar Reserva";
 }
 
-<h1>Edit</h1>
+<h1>Editar Reserva</h1>
 
 <h4>Reserva</h4>
 <hr />
+
 <div class="row">
     <div class="col-md-4">
-        <form asp-action="Edit">
+
+        <!--
+            IMPORTANTE:
+            method="post" para que ejecute el Edit POST
+        -->
+        <form asp-action="Edit" method="post">
+
+            <!-- Mostrar errores generales -->
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <!-- 🔹 Enviar el Id oculto -->
             <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="Nombre" class="control-label"></label>
-                <input asp-for="Nombre" class="form-control" />
-                <span asp-validation-for="Nombre" class="text-danger"></span>
-            </div>
+
+            <!-- ============================= -->
+            <!-- FECHA -->
+            <!-- ============================= -->
             <div class="form-group">
                 <label asp-for="Fecha" class="control-label"></label>
-                <input asp-for="Fecha" class="form-control" />
+                <input asp-for="Fecha" type="date" class="form-control" />
                 <span asp-validation-for="Fecha" class="text-danger"></span>
             </div>
+
+            <!-- ============================= -->
+            <!-- HORA INICIO -->
+            <!-- ============================= -->
             <div class="form-group">
                 <label asp-for="HoraInicio" class="control-label"></label>
-                <input asp-for="HoraInicio" class="form-control" />
+                <input asp-for="HoraInicio" type="time" class="form-control" />
                 <span asp-validation-for="HoraInicio" class="text-danger"></span>
             </div>
+
+            <!-- ============================= -->
+            <!-- HORA FIN -->
+            <!-- ============================= -->
             <div class="form-group">
                 <label asp-for="HoraFin" class="control-label"></label>
-                <input asp-for="HoraFin" class="form-control" />
+                <input asp-for="HoraFin" type="time" class="form-control" />
                 <span asp-validation-for="HoraFin" class="text-danger"></span>
             </div>
+
+            <!-- ============================= -->
+            <!-- MOTIVO -->
+            <!-- ============================= -->
             <div class="form-group">
                 <label asp-for="Motivo" class="control-label"></label>
                 <input asp-for="Motivo" class="form-control" />
                 <span asp-validation-for="Motivo" class="text-danger"></span>
             </div>
+
+            <!-- ============================= -->
+            <!-- SALA (ESTABA FALTANDO) -->
+            <!-- ============================= -->
             <div class="form-group">
-                <label asp-for="Estado" class="control-label"></label>
-                <input asp-for="Estado" class="form-control" />
-                <span asp-validation-for="Estado" class="text-danger"></span>
+                <label asp-for="SalaId" class="control-label"></label>
+
+                <!-- Dropdown obligatorio -->
+                <select asp-for="SalaId"
+                        asp-items="ViewBag.SalaId"
+                        class="form-control">
+                    <option value="">-- Seleccione una sala --</option>
+                </select>
+
+                <span asp-validation-for="SalaId" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
+
+            <!-- ============================= -->
+            <!-- BOTONES -->
+            <!-- ============================= -->
+            <div class="form-group mt-3">
+                <input type="submit" value="Guardar Cambios" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Volver</a>
             </div>
+
         </form>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

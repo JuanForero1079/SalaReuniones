@@ -1,10 +1,6 @@
-﻿// Importa funcionalidades básicas del sistema (DateTime, etc.)
+﻿using Microsoft.AspNetCore.Identity;
 using System;
-
-// Permite usar anotaciones como [Required], [MaxLength], etc.
 using System.ComponentModel.DataAnnotations;
-
-// Permite definir claves foráneas
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SalaReuniones.Models
@@ -15,44 +11,95 @@ namespace SalaReuniones.Models
     /// </summary>
     public class Reserva
     {
-        // Clave primaria de la tabla
+        // ==============================
+        // CLAVE PRIMARIA
+        // ==============================
         public int Id { get; set; }
 
-        // Nombre de la persona que realiza la reserva
-        [Required]
-        [MaxLength(100)]
-        public string Nombre { get; set; } = string.Empty;
+        // ==============================
+        // FECHA Y HORAS
+        // ==============================
 
-        // Fecha de la reserva
-        [Required]
+        // 🔹 Fecha obligatoria
+        [Required(ErrorMessage = "La fecha es obligatoria.")]
+        [DataType(DataType.Date)]
         public DateTime Fecha { get; set; }
 
-        // Hora de inicio
-        [Required]
+        // 🔹 Hora de inicio obligatoria
+        [Required(ErrorMessage = "La hora de inicio es obligatoria.")]
+        [DataType(DataType.Time)]
         public TimeSpan HoraInicio { get; set; }
 
-        // Hora de finalización
-        [Required]
+        // 🔹 Hora de fin obligatoria
+        [Required(ErrorMessage = "La hora de fin es obligatoria.")]
+        [DataType(DataType.Time)]
         public TimeSpan HoraFin { get; set; }
 
-        // Motivo de la reunión
+        // ==============================
+        // INFORMACIÓN ADICIONAL
+        // ==============================
+
+        // 🔹 Motivo opcional (máximo 250 caracteres)
         [MaxLength(250)]
         public string Motivo { get; set; } = string.Empty;
 
-        // Estado de la reserva
-        // Por defecto será "Activa"
-        [Required]
-        [MaxLength(50)]
-        public string Estado { get; set; } = "Activa";
+        /*
+            ❗ IMPORTANTE:
+            Quitamos [Required] porque el Estado se asigna automáticamente
+            en el controlador.
+        */
+        public EstadoReserva Estado { get; set; } = EstadoReserva.Activa;
 
-        // 🔹 CLAVE FORÁNEA
-        // Indica a qué sala pertenece esta reserva
-        [ForeignKey(nameof(Sala))]
+        // ==============================
+        // RELACIÓN CON SALA
+        // ==============================
+
+        // 🔹 La sala sí es obligatoria (se selecciona en el formulario)
+        [Required(ErrorMessage = "Debe seleccionar una sala.")]
         public int SalaId { get; set; }
 
-        // 🔹 Propiedad de navegación
-        // Permite acceder a los datos de la sala relacionada
-        public Sala? Sala { get; set; } = null!;
+        public Sala? Sala { get; set; }
 
+        // ==============================
+        // RELACIÓN CON USUARIO (Identity)
+        // ==============================
+
+        /*
+            ❗ MUY IMPORTANTE:
+
+            Quitamos [Required] porque UsuarioId
+            NO viene del formulario.
+
+            Se asigna automáticamente en el controlador:
+            reserva.UsuarioId = userId;
+
+            Si dejamos [Required], el ModelState falla.
+        */
+        public string? UsuarioId { get; set; }
+
+        [ForeignKey(nameof(UsuarioId))]
+        public IdentityUser? Usuario { get; set; }
+
+        // ==============================
+        // VALIDACIÓN PERSONALIZADA
+        // ==============================
+
+        /// <summary>
+        /// Verifica que la hora de fin sea mayor que la hora de inicio.
+        /// </summary>
+        public bool HorarioValido()
+        {
+            return HoraFin > HoraInicio;
+        }
+    }
+
+    // ==================================
+    // ENUM PARA ESTADO DE LA RESERVA
+    // ==================================
+    public enum EstadoReserva
+    {
+        Activa,
+        Cancelada,
+        Finalizada
     }
 }

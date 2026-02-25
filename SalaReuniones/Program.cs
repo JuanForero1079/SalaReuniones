@@ -11,17 +11,17 @@ var builder = WebApplication.CreateBuilder(args);
 // MVC (Controladores + Vistas)
 builder.Services.AddControllersWithViews();
 
-// Configuraci髇 de DbContext con SQL Server
+// Configuraci贸n de DbContext con SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configuraci髇 de Identity
+// Configuraci贸n de Identity
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 {
-    // No requiere confirmaci髇 de cuenta al registrarse
+    // No requiere confirmaci贸n de cuenta al registrarse
     options.SignIn.RequireConfirmedAccount = false;
 
-    // Configuraci髇 de contrase馻s (opcional)
+    // Configuraci贸n de contrase帽as (opcional)
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
     options.Password.RequireNonAlphanumeric = false;
@@ -32,7 +32,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
 // =============================
-// CONSTRUCCI覰 DE LA APP
+// CONSTRUCCI脫N DE LA APP
 // =============================
 var app = builder.Build();
 
@@ -40,14 +40,14 @@ var app = builder.Build();
 // PIPELINE HTTP
 // =============================
 
-// Manejo de errores y HSTS en producci髇
+// Manejo de errores y HSTS en producci贸n
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
-// Redirecci髇 HTTPS y archivos est醫icos
+// Redirecci贸n HTTPS y archivos est谩ticos
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
@@ -71,21 +71,22 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Reservas}/{action=Index}/{id?}");
 
-// Mapear p醙inas de Identity (Login, Register, Logout, Manage, etc.)
+// Mapear p谩ginas de Identity (Login, Register, Logout, Manage, etc.)
 app.MapRazorPages();
 
 // =============================
-// INICIALIZAR ROLES Y USUARIOS DE PRUEBA
+// INICIALIZAR ROLES Y USUARIOS
 // =============================
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
 
-    // Manejo de roles y usuarios
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
 
-    // Lista de roles que queremos crear
+    //  Contrase帽a global para toda la oficina
+    string passwordGlobal = "Oficina2026*";
+
     string[] roles = { "Administrador", "Usuario", "Visualizador" };
 
     foreach (var role in roles)
@@ -97,10 +98,10 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // Funci髇 para crear usuario de prueba si no existe
-    void CreateUserIfNotExists(string email, string password, string role)
+    void CreateUserIfNotExists(string email, string role)
     {
         var user = userManager.FindByEmailAsync(email).GetAwaiter().GetResult();
+
         if (user == null)
         {
             user = new IdentityUser
@@ -109,19 +110,24 @@ using (var scope = app.Services.CreateScope())
                 Email = email,
                 EmailConfirmed = true
             };
-            userManager.CreateAsync(user, password).GetAwaiter().GetResult();
-            userManager.AddToRoleAsync(user, role).GetAwaiter().GetResult();
-            Console.WriteLine($"Usuario creado: {email} con rol {role}");
+
+            var result = userManager.CreateAsync(user, passwordGlobal).GetAwaiter().GetResult();
+
+            if (result.Succeeded)
+            {
+                userManager.AddToRoleAsync(user, role).GetAwaiter().GetResult();
+                Console.WriteLine($"Usuario creado: {email} con rol {role}");
+            }
         }
     }
 
-    // Crear usuarios de prueba
-    CreateUserIfNotExists("admin@empresa.com", "Admin123!", "Administrador");
-    CreateUserIfNotExists("usuario@empresa.com", "User123!", "Usuario");
-    CreateUserIfNotExists("visor@empresa.com", "View123!", "Visualizador");
+    // Crear usuarios iniciales
+    CreateUserIfNotExists("admin@empresa.com", "Administrador");
+    CreateUserIfNotExists("usuario@empresa.com", "Usuario");
+    CreateUserIfNotExists("visor@empresa.com", "Visualizador");
 }
 
 // =============================
-// EJECUCI覰
+// EJECUCI脫N
 // =============================
 app.Run();
