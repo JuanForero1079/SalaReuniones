@@ -2,6 +2,11 @@
 @inject SignInManager<IdentityUser> SignInManager
 @inject UserManager<IdentityUser> UserManager
 
+@{
+    // Página actual
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString();
+}
+
 @if (SignInManager.IsSignedIn(User))
 {
     <div class="d-flex align-items-center">
@@ -11,7 +16,7 @@
         </form>
     </div>
 }
-else
+else if (currentPage != "/Account/Login") //  No mostrar botón login si ya estamos en Login
 {
     <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-primary me-2">Iniciar sesión</a>
 }

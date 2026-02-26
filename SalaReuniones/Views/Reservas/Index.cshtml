@@ -6,17 +6,24 @@
     ViewData["Title"] = "Reservas";
 }
 
-<h1 class="mb-3">Reservas</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Reservas</h1>
 
-<p>
-    @* Botón Crear solo para Administrador o Usuario *@
-    @if (User.IsInRole("Administrador") || User.IsInRole("Usuario"))
-    {
-        <a asp-action="Create" class="btn btn-primary">
-            Crear Nueva Reserva
+    <div>
+        @* Botón Calendario visible para todos los autenticados *@
+        <a asp-action="Calendar" class="btn btn-outline-primary me-2">
+            Ver Calendario
         </a>
-    }
-</p>
+
+        @* Botón Crear solo para Administrador o Usuario *@
+        @if (User.IsInRole("Administrador") || User.IsInRole("Usuario"))
+        {
+            <a asp-action="Create" class="btn btn-primary">
+                Crear Nueva Reserva
+            </a>
+        }
+    </div>
+</div>
 
 @if (Model == null || !Model.Any())
 {

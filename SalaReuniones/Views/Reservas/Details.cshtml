@@ -1,4 +1,5 @@
 ﻿@model SalaReuniones.Models.Reserva
+@using System.Security.Claims
 
 @{
     ViewData["Title"] = "Detalles";
@@ -64,6 +65,15 @@
 </div>
 
 <div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning">Editar</a>
+
+    @if (User.IsInRole("Administrador") ||
+        (User.IsInRole("Usuario") &&
+        Model.UsuarioId == User.FindFirstValue(ClaimTypes.NameIdentifier)))
+    {
+        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning">
+            Editar
+        </a>
+    }
+
     <a asp-action="Index" class="btn btn-secondary">Volver</a>
 </div>
