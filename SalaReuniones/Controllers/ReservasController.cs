@@ -11,11 +11,20 @@ using SalaReuniones.Models;
 
 namespace SalaReuniones.Controllers
 {
+    /// <summary>
+    /// Controlador encargado de gestionar todas las operaciones
+    /// relacionadas con las reservas de salas.
+    /// 
+    /// SOLO usuarios autenticados pueden acceder.
+    /// </summary>
     [Authorize]
     public class ReservasController : Controller
     {
         private readonly ApplicationDbContext _context;
 
+        /// <summary>
+        /// Inyección del contexto de base de datos (Entity Framework)
+        /// </summary>
         public ReservasController(ApplicationDbContext context)
         {
             _context = context;
@@ -24,6 +33,9 @@ namespace SalaReuniones.Controllers
         // ============================================================
         // LISTAR RESERVAS
         // ============================================================
+        /// <summary>
+        /// Muestra todas las reservas ordenadas por fecha y hora.
+        /// </summary>
         public async Task<IActionResult> Index()
         {
             var reservas = await _context.Reservas
@@ -37,26 +49,45 @@ namespace SalaReuniones.Controllers
         }
 
         // ============================================================
-        // CREAR RESERVA
+        // CREAR RESERVA (GET)
         // ============================================================
+        /// <summary>
+        /// Muestra el formulario para crear una reserva.
+        /// </summary>
         [Authorize(Roles = "Administrador,Usuario")]
         public IActionResult Create()
         {
-            ViewData["SalaId"] = new SelectList(_context.Salas, "Id", "Nombre");
+            ViewData["SalaId"] =
+                new SelectList(_context.Salas, "Id", "Nombre");
+
             return View();
         }
 
+        // ============================================================
+        // CREAR RESERVA (POST)
+        // ============================================================
+        /// <summary>
+        /// Guarda una nueva reserva validando:
+        /// - Usuario autenticado
+        /// - Horario válido
+        /// - Cruce de reservas
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador,Usuario")]
         public async Task<IActionResult> Create(Reserva reserva)
         {
+            // Obtener usuario logueado
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
+            // Validación horario
             if (reserva.HoraFin <= reserva.HoraInicio)
-                ModelState.AddModelError("", "La hora de fin debe ser mayor que la hora de inicio.");
+                ModelState.AddModelError("",
+                    "La hora de fin debe ser mayor que la hora de inicio.");
 
+            // Validar cruces de horario
             bool existeCruce = await _context.Reservas.AnyAsync(r =>
                 r.SalaId == reserva.SalaId &&
                 r.Fecha.Date == reserva.Fecha.Date &&
@@ -66,14 +97,18 @@ namespace SalaReuniones.Controllers
             );
 
             if (existeCruce)
-                ModelState.AddModelError("", "Ya existe una reserva en ese horario para esta sala.");
+                ModelState.AddModelError("",
+                    "Ya existe una reserva en ese horario para esta sala.");
 
             if (!ModelState.IsValid)
             {
-                ViewData["SalaId"] = new SelectList(_context.Salas, "Id", "Nombre", reserva.SalaId);
+                ViewData["SalaId"] =
+                    new SelectList(_context.Salas, "Id", "Nombre", reserva.SalaId);
+
                 return View(reserva);
             }
 
+            // Asignaciones automáticas
             reserva.UsuarioId = userId;
             reserva.Estado = EstadoReserva.Activa;
 
@@ -84,7 +119,7 @@ namespace SalaReuniones.Controllers
         }
 
         // ============================================================
-        // EDITAR RESERVA
+        // EDITAR RESERVA (GET)
         // ============================================================
         [Authorize(Roles = "Administrador,Usuario")]
         public async Task<IActionResult> Edit(int? id)
@@ -94,37 +129,50 @@ namespace SalaReuniones.Controllers
             var reserva = await _context.Reservas.FindAsync(id);
             if (reserva == null) return NotFound();
 
+            // Solo dueño o admin puede editar
             if (!User.IsInRole("Administrador") &&
                 reserva.UsuarioId != User.FindFirstValue(ClaimTypes.NameIdentifier))
                 return Forbid();
 
-            ViewData["SalaId"] = new SelectList(_context.Salas, "Id", "Nombre", reserva.SalaId);
+            ViewData["SalaId"] =
+                new SelectList(_context.Salas, "Id", "Nombre", reserva.SalaId);
+
             return View(reserva);
         }
 
+        // ============================================================
+        // EDITAR RESERVA (POST)
+        // ============================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador,Usuario")]
         public async Task<IActionResult> Edit(int id, Reserva reserva)
         {
-            if (id != reserva.Id) return NotFound();
+            if (id != reserva.Id)
+                return NotFound();
 
             var reservaOriginal = await _context.Reservas
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (reservaOriginal == null) return NotFound();
+            if (reservaOriginal == null)
+                return NotFound();
 
+            // Seguridad: solo dueño o admin
             if (!User.IsInRole("Administrador") &&
                 reservaOriginal.UsuarioId != User.FindFirstValue(ClaimTypes.NameIdentifier))
                 return Forbid();
 
+            // Mantener datos protegidos
             reserva.UsuarioId = reservaOriginal.UsuarioId;
             reserva.Estado = reservaOriginal.Estado;
 
+            // Validación horario
             if (reserva.HoraFin <= reserva.HoraInicio)
-                ModelState.AddModelError("", "La hora de fin debe ser mayor que la hora de inicio.");
+                ModelState.AddModelError("",
+                    "La hora de fin debe ser mayor que la hora de inicio.");
 
+            // Validar cruces
             bool existeCruce = await _context.Reservas.AnyAsync(r =>
                 r.Id != reserva.Id &&
                 r.SalaId == reserva.SalaId &&
@@ -135,11 +183,14 @@ namespace SalaReuniones.Controllers
             );
 
             if (existeCruce)
-                ModelState.AddModelError("", "Ya existe una reserva en ese horario.");
+                ModelState.AddModelError("",
+                    "Ya existe una reserva en ese horario.");
 
             if (!ModelState.IsValid)
             {
-                ViewData["SalaId"] = new SelectList(_context.Salas, "Id", "Nombre", reserva.SalaId);
+                ViewData["SalaId"] =
+                    new SelectList(_context.Salas, "Id", "Nombre", reserva.SalaId);
+
                 return View(reserva);
             }
 
@@ -204,6 +255,9 @@ namespace SalaReuniones.Controllers
         // ============================================================
         // VISTA CALENDARIO
         // ============================================================
+        /// <summary>
+        /// Carga la vista del calendario y lista de salas.
+        /// </summary>
         public IActionResult Calendar()
         {
             ViewData["Salas"] = new SelectList(
@@ -216,8 +270,14 @@ namespace SalaReuniones.Controllers
         }
 
         // ============================================================
-        // ENDPOINT PROFESIONAL PARA FULLCALENDAR
+        // API PARA FULLCALENDAR
         // ============================================================
+        /// <summary>
+        /// Endpoint JSON consumido por FullCalendar.
+        /// 
+        /// IMPORTANTE:
+        /// Aquí se envía el color de la sala para pintar eventos.
+        /// </summary>
         [Authorize]
         public async Task<IActionResult> GetReservas(DateTime start, DateTime end, int? salaId)
         {
@@ -230,21 +290,33 @@ namespace SalaReuniones.Controllers
                     r.Estado == EstadoReserva.Activa
                 );
 
+            // Filtro opcional por sala
             if (salaId.HasValue)
                 query = query.Where(r => r.SalaId == salaId.Value);
 
             var reservas = await query.ToListAsync();
 
+            // Conversión al formato que FullCalendar entiende
             var eventos = reservas.Select(r => new
             {
                 id = r.Id,
-                title = r.Motivo ?? "Reserva",
+
+                // Texto mostrado en calendario
+                title = string.IsNullOrEmpty(r.Motivo)
+                    ? $"Reserva - {r.Sala!.Nombre}"
+                    : r.Motivo,
+
+                // Fechas completas
                 start = r.Fecha.Date.Add(r.HoraInicio),
                 end = r.Fecha.Date.Add(r.HoraFin),
-                backgroundColor = r.Sala?.ColorHex ?? "#3788d8",
-                borderColor = r.Sala?.ColorHex ?? "#3788d8",
+
+                // ⭐ COLOR DINÁMICO DESDE BD (SOLUCIÓN)
+                backgroundColor = r.Sala!.ColorHex ?? "#3788d8",
+                borderColor = r.Sala!.ColorHex ?? "#3788d8",
+
+                // Datos extra (tooltip / modal)
                 usuario = r.Usuario?.Email ?? "Sin usuario",
-                sala = r.Sala?.Nombre ?? "Sin sala"
+                sala = r.Sala!.Nombre
             });
 
             return Json(eventos);

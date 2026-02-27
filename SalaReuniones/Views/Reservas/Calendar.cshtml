@@ -75,18 +75,22 @@
                    .then(response => response.json())
                    .then(data => {
 
-                       const eventos = data.map(r => ({
-                           id: r.id,
-                           title: r.title,
-                           start: r.start,
-                           end: r.end,
-                           backgroundColor: r.backgroundColor,
-                           borderColor: r.borderColor,
-                           extendedProps: {
-                               usuario: r.usuario,
-                               sala: r.sala
-                           }
-                       }));
+                      const eventos = data.map(r => ({
+                          id: r.id,
+                          title: r.title,
+                          start: r.start,
+                          end: r.end,
+
+                          color: r.backgroundColor, // ⭐ ESTA ES LA CLAVE
+
+                          backgroundColor: r.backgroundColor,
+                          borderColor: r.borderColor,
+
+                          extendedProps: {
+                              usuario: r.usuario,
+                              sala: r.sala
+                          }
+                      }));
 
                        successCallback(eventos);
                    })
