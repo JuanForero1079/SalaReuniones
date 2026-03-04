@@ -1,0 +1,222 @@
+﻿@{
+    ViewData["Title"] = "Dashboard Administrativo";
+
+    var fechaInicio = Context.Request.Query["fechaInicio"];
+    var fechaFin = Context.Request.Query["fechaFin"];
+}
+
+<!-- ========================================================= -->
+<!-- TÍTULO -->
+<!-- ========================================================= -->
+<h2 class="text-center mb-4">📊 Panel Administrativo</h2>
+
+
+<!-- ========================================================= -->
+<!-- FILTRO ACTIVO -->
+<!-- ========================================================= -->
+@if (ViewBag.FiltroActivo != null)
+{
+    <div class="alert alert-info text-center">
+        Mostrando resultados: <strong>@ViewBag.FiltroActivo</strong>
+    </div>
+}
+
+
+<!-- ========================================================= -->
+<!-- BOTONES DE FILTRO RÁPIDO -->
+<!-- ========================================================= -->
+<div class="mb-3 d-flex gap-2 flex-wrap justify-content-center">
+
+    <a class="btn btn-outline-primary"
+       href="/Reportes/Dashboard?fechaInicio=@DateTime.Today.ToString("yyyy-MM-dd")&fechaFin=@DateTime.Today.ToString("yyyy-MM-dd")">
+        Hoy
+    </a>
+
+    <a class="btn btn-outline-primary"
+       href="/Reportes/Dashboard?fechaInicio=@DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd")&fechaFin=@DateTime.Today.ToString("yyyy-MM-dd")">
+        7 días
+    </a>
+
+    <a class="btn btn-outline-primary"
+       href="/Reportes/Dashboard?fechaInicio=@DateTime.Today.AddDays(-30).ToString("yyyy-MM-dd")&fechaFin=@DateTime.Today.ToString("yyyy-MM-dd")">
+        30 días
+    </a>
+
+    <a class="btn btn-outline-primary"
+       href="/Reportes/Dashboard?fechaInicio=@DateTime.Today.AddMonths(-6).ToString("yyyy-MM-dd")&fechaFin=@DateTime.Today.ToString("yyyy-MM-dd")">
+        6 meses
+    </a>
+
+    <a class="btn btn-outline-primary"
+       href="/Reportes/Dashboard?fechaInicio=@DateTime.Today.AddYears(-1).ToString("yyyy-MM-dd")&fechaFin=@DateTime.Today.ToString("yyyy-MM-dd")">
+        1 año
+    </a>
+
+    <a class="btn btn-outline-dark"
+       href="/Reportes/Dashboard">
+        Histórico
+    </a>
+
+</div>
+
+
+<!-- ========================================================= -->
+<!-- FORMULARIO PERSONALIZADO -->
+<!-- ========================================================= -->
+<form method="get" asp-action="Dashboard" asp-controller="Reportes" class="mb-4">
+    <div class="row justify-content-center">
+
+        <div class="col-md-3">
+            <label>Desde</label>
+            <input type="date"
+                   name="fechaInicio"
+                   value="@fechaInicio"
+                   class="form-control" />
+        </div>
+
+        <div class="col-md-3">
+            <label>Hasta</label>
+            <input type="date"
+                   name="fechaFin"
+                   value="@fechaFin"
+                   class="form-control" />
+        </div>
+
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">
+                Generar Reporte
+            </button>
+        </div>
+
+        <!-- BOTÓN EXPORTAR PDF -->
+        <div class="col-md-3 d-flex align-items-end">
+            <a asp-action="ExportarPDF"
+               asp-route-fechaInicio="@fechaInicio"
+               asp-route-fechaFin="@fechaFin"
+               class="btn btn-danger w-100">
+                Exportar PDF
+            </a>
+        </div>
+
+    </div>
+</form>
+
+
+<!-- ========================================================= -->
+<!-- KPIs -->
+<!-- ========================================================= -->
+<div class="row text-center mb-4">
+
+    <div class="col-md-3">
+        <div class="card shadow border-0 p-3">
+            <h6 class="text-muted">Total Reservas</h6>
+            <h2 class="fw-bold">@ViewBag.TotalReservas</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow border-0 p-3">
+            <h6 class="text-muted">Reservas Hoy</h6>
+            <h2 class="fw-bold text-primary">@ViewBag.ReservasHoy</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow border-0 p-3">
+            <h6 class="text-muted">Usuarios Registrados</h6>
+            <h2 class="fw-bold text-success">@ViewBag.TotalUsuarios</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow border-0 p-3">
+            <h6 class="text-muted">Reservas Activas</h6>
+            <h2 class="fw-bold text-danger">@ViewBag.ReservasActivas</h2>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- ========================================================= -->
+<!-- GRÁFICAS -->
+<!-- ========================================================= -->
+<div class="row">
+
+    <div class="col-md-6">
+        <div class="card shadow p-3">
+            <h5 class="text-center">Reservas por Sala</h5>
+            <canvas id="chartSalas"></canvas>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow p-3">
+            <h5 class="text-center">Reservas por Día</h5>
+            <canvas id="chartDias"></canvas>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- ========================================================= -->
+<!-- SCRIPTS -->
+<!-- ========================================================= -->
+@section Scripts {
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+
+        const params = new URLSearchParams(window.location.search);
+
+        fetch('/Reportes/GetDashboardData?' + params.toString())
+            .then(response => response.json())
+            .then(data => {
+
+                // ====== GRÁFICA POR SALA ======
+                const salasLabels = data.reservasPorSala.map(x => x.sala);
+                const salasData = data.reservasPorSala.map(x => x.total);
+
+                new Chart(document.getElementById('chartSalas'), {
+                    type: 'bar',
+                    data: {
+                        labels: salasLabels,
+                        datasets: [{
+                            label: 'Reservas',
+                            data: salasData
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } }
+                    }
+                });
+
+                // ====== GRÁFICA POR DÍA ======
+                const diasLabels = data.reservasPorDia.map(x =>
+                    new Date(x.fecha).toLocaleDateString()
+                );
+
+                const diasData = data.reservasPorDia.map(x => x.total);
+
+                new Chart(document.getElementById('chartDias'), {
+                    type: 'line',
+                    data: {
+                        labels: diasLabels,
+                        datasets: [{
+                            label: 'Reservas',
+                            data: diasData,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true
+                    }
+                });
+
+            });
+
+    </script>
+}

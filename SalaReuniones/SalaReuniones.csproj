@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DinkToPdf" Version="1.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.23" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.23" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.23" />
@@ -17,6 +18,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.23" />
+    <PackageReference Include="QuestPDF" Version="2026.2.2" />
+    <PackageReference Include="Rotativa.AspNetCore" Version="1.2.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +28,16 @@
 
   <ItemGroup>
     <None Include="C:\Users\Camilo Pineda\source\repos\SalaReuniones\SalaReuniones\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\Rotativa\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\images\HaloLogoBlue.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

@@ -1,27 +1,40 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
+    <!-- ========================================================= -->
+    <!-- CONFIGURACIÓN GENERAL -->
+    <!-- ========================================================= -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Título dinámico por vista -->
     <title>@ViewData["Title"] - SalaReuniones</title>
 
+    <!-- ========================================================= -->
+    <!-- ESTILOS -->
+    <!-- ========================================================= -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SalaReuniones.styles.css" asp-append-version="true" />
 </head>
 
 <body>
+
+    <!-- ========================================================= -->
+    <!-- NAVBAR SUPERIOR -->
+    <!-- ========================================================= -->
     <header>
         <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
 
-                <!-- Logo -->
+                <!-- ================= LOGO ================= -->
                 <a class="navbar-brand"
-                   asp-controller="Home"
-                   asp-action="Index">
-                    SalaReuniones
+                   asp-controller="Reservas"
+                   asp-action="Calendar">
+                     SalaReuniones
                 </a>
 
+                <!-- Botón responsive (móvil) -->
                 <button class="navbar-toggler"
                         type="button"
                         data-bs-toggle="collapse"
@@ -31,45 +44,51 @@
 
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
 
-                    <!-- Menú Izquierda -->
+                    <!-- ===================================================== -->
+                    <!-- MENÚ IZQUIERDO -->
+                    <!-- ===================================================== -->
                     <ul class="navbar-nav flex-grow-1">
 
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="Home"
-                               asp-action="Index">
-                                Home
-                            </a>
-                        </li>
-
+                        <!-- LISTADO DE RESERVAS -->
                         <li class="nav-item">
                             <a class="nav-link text-dark"
                                asp-controller="Reservas"
                                asp-action="Index">
-                                Reservas
+                                 Reservas
                             </a>
                         </li>
 
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="Reservas"
-                               asp-action="Create">
-                                Crear Reserva
-                            </a>
-                        </li>
+                        <!-- CREAR RESERVA (solo usuarios autorizados) -->
+                        @if (User.IsInRole("Administrador") || User.IsInRole("Usuario"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark"
+                                   asp-controller="Reservas"
+                                   asp-action="Create">
+                                     Crear Reserva
+                                </a>
+                            </li>
+                        }
 
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="Home"
-                               asp-action="Privacy">
-                                Privacy
-                            </a>
-                        </li>
+                        <!-- DASHBOARD ADMINISTRATIVO -->
+                        @if (User.IsInRole("Administrador"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark"
+                                   asp-controller="Reportes"
+                                   asp-action="Dashboard">
+                                     Reportes
+                                </a>
+                            </li>
+                        }
 
                     </ul>
 
-                    <!-- Login / Logout -->
-                    <ul class="navbar-nav">
+                    <!-- ===================================================== -->
+                    <!-- LOGIN / LOGOUT (IDENTITY) -->
+                    <!-- IMPORTANTE: NO ELIMINAR -->
+                    <!-- ===================================================== -->
+                    <ul class="navbar-nav ms-auto">
                         <partial name="_LoginPartial" />
                     </ul>
 
@@ -78,23 +97,34 @@
         </nav>
     </header>
 
+    <!-- ========================================================= -->
+    <!-- CONTENIDO PRINCIPAL -->
+    <!-- Aquí se renderiza cada vista -->
+    <!-- ========================================================= -->
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
+    <!-- ========================================================= -->
+    <!-- FOOTER -->
+    <!-- ========================================================= -->
     <footer class="border-top footer text-muted mt-4">
         <div class="container">
-            &copy; 2026 - SalaReuniones -
-            <a asp-controller="Home" asp-action="Privacy">Privacy</a>
+            &copy; 2026 - SalaReuniones
         </div>
     </footer>
 
+    <!-- ========================================================= -->
+    <!-- SCRIPTS -->
+    <!-- ========================================================= -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
+    <!-- Scripts adicionales por vista -->
     @await RenderSectionAsync("Scripts", required: false)
+
 </body>
 </html>

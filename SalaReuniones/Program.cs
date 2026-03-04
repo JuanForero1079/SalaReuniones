@@ -1,82 +1,109 @@
 using SalaReuniones.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// =============================
-// SERVICIOS
-// =============================
+// ======================================================
+// CONFIGURACIÓN DE LICENCIA QUESTPDF
+// ======================================================
+// Necesario para evitar excepción en ejecución.
+// Community es gratuita para uso no comercial/empresas pequeñas.
+QuestPDF.Settings.License = LicenseType.Community;
 
+
+// ======================================================
+// SERVICIOS
+// ======================================================
+
+// -----------------------------
 // MVC (Controladores + Vistas)
+// -----------------------------
 builder.Services.AddControllersWithViews();
 
-// Configuración de DbContext con SQL Server
+// -----------------------------
+// DbContext con SQL Server
+// -----------------------------
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+    )
+);
 
-// Configuración de Identity
+// -----------------------------
+// Identity + Roles
+// -----------------------------
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 {
-    // No requiere confirmación de cuenta al registrarse
+    // No requiere confirmación por email
     options.SignIn.RequireConfirmedAccount = false;
 
-    // Configuración de contraseñas (opcional)
+    // Configuración de contraseña
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireUppercase = false;
     options.Password.RequireLowercase = false;
 })
-.AddRoles<IdentityRole>() // Habilita roles (Administrador, Usuario, Visualizador)
+.AddRoles<IdentityRole>() // Habilita roles
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
-// =============================
-// CONSTRUCCIÓN DE LA APP
-// =============================
+
+// ======================================================
+// CONSTRUCCIÓN DE LA APLICACIÓN
+// ======================================================
 var app = builder.Build();
 
-// =============================
-// PIPELINE HTTP
-// =============================
 
-// Manejo de errores y HSTS en producción
+// ======================================================
+// PIPELINE HTTP
+// ======================================================
+
+// Manejo de errores en producción
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
+    app.UseHsts(); // Seguridad adicional HTTPS
 }
 
-// Redirección HTTPS y archivos estáticos
+// Redirección HTTPS
 app.UseHttpsRedirection();
+
+// Archivos estáticos (css, js, imágenes)
 app.UseStaticFiles();
 
 // Routing
 app.UseRouting();
 
-// ===== Identity =====
+// ------------------------------------------------------
+// Identity Middleware
+// ------------------------------------------------------
 
-// Primero: Authentication (login)
+// 1️⃣ Autenticación (Login)
 app.UseAuthentication();
 
-// Segundo: Authorization (roles, permisos)
+// 2️⃣ Autorización (Roles y permisos)
 app.UseAuthorization();
 
-// =============================
-// MAPEO DE RUTAS
-// =============================
 
-// Ruta por defecto: Home/Index
+// ======================================================
+// MAPEO DE RUTAS
+// ======================================================
+
+// Ruta por defecto
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Reservas}/{action=Index}/{id?}");
+    pattern: "{controller=Reservas}/{action=Index}/{id?}"
+);
 
-// Mapear páginas de Identity (Login, Register, Logout, Manage, etc.)
+// Rutas para Identity (Login, Register, etc.)
 app.MapRazorPages();
 
-// =============================
+
+// ======================================================
 // INICIALIZAR ROLES Y USUARIOS
-// =============================
+// ======================================================
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -84,23 +111,29 @@ using (var scope = app.Services.CreateScope())
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
 
-    //  Contraseña global para toda la oficina
+    // 🔐 Contraseña global inicial
     string passwordGlobal = "Oficina2026*";
 
+    // Roles del sistema
     string[] roles = { "Administrador", "Usuario", "Visualizador" };
 
+    // Crear roles si no existen
     foreach (var role in roles)
     {
         if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
         {
-            roleManager.CreateAsync(new IdentityRole(role)).GetAwaiter().GetResult();
+            roleManager.CreateAsync(new IdentityRole(role))
+                .GetAwaiter().GetResult();
+
             Console.WriteLine($"Rol creado: {role}");
         }
     }
 
+    // Método para crear usuarios iniciales
     void CreateUserIfNotExists(string email, string role)
     {
-        var user = userManager.FindByEmailAsync(email).GetAwaiter().GetResult();
+        var user = userManager.FindByEmailAsync(email)
+            .GetAwaiter().GetResult();
 
         if (user == null)
         {
@@ -111,23 +144,27 @@ using (var scope = app.Services.CreateScope())
                 EmailConfirmed = true
             };
 
-            var result = userManager.CreateAsync(user, passwordGlobal).GetAwaiter().GetResult();
+            var result = userManager.CreateAsync(user, passwordGlobal)
+                .GetAwaiter().GetResult();
 
             if (result.Succeeded)
             {
-                userManager.AddToRoleAsync(user, role).GetAwaiter().GetResult();
+                userManager.AddToRoleAsync(user, role)
+                    .GetAwaiter().GetResult();
+
                 Console.WriteLine($"Usuario creado: {email} con rol {role}");
             }
         }
     }
 
-    // Crear usuarios iniciales
+    // Usuarios iniciales del sistema
     CreateUserIfNotExists("admin@empresa.com", "Administrador");
     CreateUserIfNotExists("usuario@empresa.com", "Usuario");
     CreateUserIfNotExists("visor@empresa.com", "Visualizador");
 }
 
-// =============================
-// EJECUCIÓN
-// =============================
+
+// ======================================================
+// EJECUCIÓN DE LA APLICACIÓN
+// ======================================================
 app.Run();
