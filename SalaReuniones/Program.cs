@@ -111,7 +111,7 @@ using (var scope = app.Services.CreateScope())
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
 
-    // 🔐 Contraseña global inicial
+    //  Contraseña global inicial
     string passwordGlobal = "Oficina2026*";
 
     // Roles del sistema
