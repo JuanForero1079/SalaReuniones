@@ -1,0 +1,35 @@
+﻿@model Microsoft.AspNetCore.Identity.IdentityUser
+
+<!--
+    Permite modificar el email y rol del usuario.
+-->
+
+<h2>Editar Usuario</h2>
+
+<form method="post">
+
+    <!-- ID oculto -->
+    <input type="hidden" name="id" value="@Model.Id" />
+
+    <!-- Email -->
+    <div class="mb-3">
+        <label>Email</label>
+        <input name="email" value="@Model.Email" class="form-control" required />
+    </div>
+
+    <!-- Rol -->
+    <div class="mb-3">
+        <label>Rol</label>
+        <select name="role" class="form-control">
+            @foreach (var role in ViewBag.Roles)
+            {
+                <option value="@role.Name"
+                        selected="@(role.Name == ViewBag.UserRole)">
+                    @role.Name
+                </option>
+            }
+        </select>
+    </div>
+
+    <button class="btn btn-primary">Guardar</button>
+</form>

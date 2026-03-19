@@ -1,0 +1,97 @@
+﻿@{
+    ViewData["Title"] = "Crear Usuario";
+}
+
+<!-- ========================================================= -->
+<!-- VISTA: CREAR USUARIO (ADMIN) -->
+<!--
+    ✔ Permite crear usuarios SIN contraseña manual
+    ✔ Usa contraseña global definida en el controller
+    ✔ Asigna rol automáticamente
+    ✔ Solo accesible para Administradores
+-->
+<!-- ========================================================= -->
+
+<h2 class="mb-3">Crear Usuario</h2>
+
+<!-- ========================================================= -->
+<!-- FORMULARIO -->
+<!--
+    ✔ asp-action="Create" → llama al POST
+    ✔ method="post" → envío seguro
+    ✔ AntiForgeryToken → protección CSRF
+-->
+<!-- ========================================================= -->
+<form asp-action="Create" method="post">
+
+    @Html.AntiForgeryToken()
+
+    <!-- ===================================================== -->
+    <!-- EMAIL -->
+    <!-- ===================================================== -->
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input name="email"
+               type="email"
+               class="form-control"
+               placeholder="ejemplo@empresa.com"
+               required />
+    </div>
+
+    <!-- ===================================================== -->
+    <!-- ROL -->
+    <!-- ===================================================== -->
+    <div class="mb-3">
+        <label class="form-label">Rol</label>
+
+        <select name="role" class="form-control">
+            @foreach (var role in ViewBag.Roles)
+            {
+                <option value="@role.Name">@role.Name</option>
+            }
+        </select>
+    </div>
+
+    <!-- ===================================================== -->
+    <!-- BOTONES -->
+    <!-- ===================================================== -->
+    <button type="submit" class="btn btn-success">
+        ➕ Crear Usuario
+    </button>
+
+    <a asp-action="Index" class="btn btn-secondary">
+        Cancelar
+    </a>
+
+</form>
+
+<!-- ========================================================= -->
+<!-- MENSAJES DE VALIDACIÓN -->
+<!--
+    ✔ Muestra errores de Identity:
+        - Email duplicado
+        - Formato inválido
+-->
+<!-- ========================================================= -->
+<div class="text-danger mt-3">
+    @Html.ValidationSummary()
+</div>
+
+<!-- ========================================================= -->
+<!-- NOTAS TÉCNICAS -->
+<!--
+    ✔ Ya NO se envía contraseña desde la vista
+    ✔ El controller usa:
+        string passwordGlobal = "Oficina2026*";
+
+    ✔ El flujo ahora es:
+        Admin crea usuario → sistema asigna contraseña → usuario inicia sesión
+
+    ✔ Si falla:
+        → Revisar ValidationSummary
+        → Verificar que el email no exista
+
+    ✔ Mejora futura recomendada:
+        → Forzar cambio de contraseña al primer login
+-->
+<!-- ========================================================= -->

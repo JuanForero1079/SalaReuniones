@@ -1,0 +1,35 @@
+﻿@model Microsoft.AspNetCore.Identity.IdentityUser
+
+@{
+    ViewData["Title"] = "Inhabilitar Usuario";
+}
+
+<h2>Inhabilitar Usuario</h2>
+
+<!-- Mensaje de advertencia -->
+<div class="alert alert-warning">
+    ⚠️ Estás a punto de inhabilitar este usuario:
+    <strong>@Model.Email</strong>
+</div>
+
+<!-- ========================================================= -->
+<!-- FORMULARIO: INHABILITAR USUARIO -->
+<!-- Nota: asp-action="Delete" sigue igual (usa DeleteConfirmed en el controller) -->
+<!-- ========================================================= -->
+<form asp-action="Delete" method="post">
+    <input type="hidden" name="id" value="@Model.Id" />
+
+    <button type="submit" class="btn btn-danger">Inhabilitar</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+</form>
+
+<!-- ========================================================= -->
+<!-- NOTAS -->
+<!--
+    ✔ No se elimina el usuario de la base de datos
+    ✔ Se utiliza LockoutEnd para bloquear el acceso
+    ✔ asp-action="Delete" apunta al método POST DeleteConfirmed
+    ✔ Protege al administrador de ser inhabilitado
+    ✔ TempData["Error"] se muestra en Index si falla
+-->
+<!-- ========================================================= -->

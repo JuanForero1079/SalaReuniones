@@ -1,0 +1,104 @@
+﻿@model IEnumerable<dynamic>
+
+@{
+    ViewData["Title"] = "Administración de Usuarios";
+}
+
+<h2 class="mb-3">Gestión de Usuarios</h2>
+
+<a asp-action="Create" class="btn btn-primary mb-3">
+    ➕ Crear Usuario
+</a>
+
+<!-- MENSAJES -->
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
+}
+
+<table class="table table-bordered table-hover">
+
+    <thead class="table-dark">
+        <tr>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Estado</th> <!--  NUEVO -->
+            <th style="width: 220px;">Acciones</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td>@user.Email</td>
+
+                <td>
+                    @(user.Role ?? "SIN ROL")
+                </td>
+
+                <!-- 🔥 ESTADO -->
+                <td>
+                    @if (user.Estado == "Activo")
+                    {
+                        <span class="badge bg-success">Activo</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">Inhabilitado</span>
+                    }
+                </td>
+
+                <td>
+                    <!-- EDITAR -->
+                    <a asp-action="Edit"
+                       asp-route-id="@user.Id"
+                       class="btn btn-warning btn-sm">
+                        ✏️ Editar
+                    </a>
+
+                    <!-- 🔥 BOTÓN DINÁMICO -->
+                    @if (user.Estado == "Activo")
+                    {
+                        <a asp-action="Delete"
+                           asp-route-id="@user.Id"
+                           class="btn btn-danger btn-sm"
+                           onclick="return confirm('¿Seguro que deseas inhabilitar este usuario?')">
+                            🚫 Inhabilitar
+                        </a>
+                    }
+                    else
+                    {
+                        <form asp-action="Activar" method="post" style="display:inline;">
+                            <input type="hidden" name="id" value="@user.Id" />
+                            <button class="btn btn-success btn-sm">
+                                ✅ Activar
+                            </button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+
+</table>
+
+<!-- ========================================================= -->
+<!-- NOTAS -->
+<!--
+    ✔ Ahora muestra estado del usuario (Activo / Inhabilitado)
+    ✔ Inhabilitar usa LockoutEnd (no elimina de la BD)
+    ✔ Activar restaura acceso
+    ✔ Mantiene historial del sistema
+    ✔ UX tipo sistema empresarial
+-->
+<!-- ========================================================= -->

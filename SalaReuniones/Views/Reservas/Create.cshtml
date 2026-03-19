@@ -1,7 +1,6 @@
 ﻿@model SalaReuniones.Models.Reserva
 
 @{
-    // Título que se mostrará en la pestaña del navegador
     ViewData["Title"] = "Crear Reserva";
 }
 
@@ -13,77 +12,72 @@
 <div class="row">
     <div class="col-md-4">
 
-        <!--
-            Formulario que enviará los datos al método Create del controlador.
-            IMPORTANTE:
-            method="post" permite que se ejecute el método [HttpPost] Create(...)
-        -->
         <form asp-action="Create" method="post">
 
-            <!--
-                Muestra errores generales del modelo (si ModelState falla)
-            -->
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <!-- ============================= -->
-            <!-- CAMPO FECHA -->
+            <!-- FECHA -->
             <!-- ============================= -->
             <div class="form-group">
-                <!-- Etiqueta automática basada en el modelo -->
                 <label asp-for="Fecha" class="control-label"></label>
 
-                <!-- Input tipo date para seleccionar la fecha -->
-                <input asp-for="Fecha" type="date" class="form-control" />
+                <!-- 🔥 BLOQUEA FECHAS PASADAS -->
+                <input asp-for="Fecha"
+                       type="date"
+                       id="fecha"
+                       class="form-control"
+                       min="@DateTime.Now.ToString("yyyy-MM-dd")" />
 
-                <!-- Muestra error si Fecha es inválida -->
                 <span asp-validation-for="Fecha" class="text-danger"></span>
             </div>
 
             <!-- ============================= -->
-            <!-- CAMPO HORA INICIO -->
+            <!-- HORA INICIO -->
             <!-- ============================= -->
             <div class="form-group">
                 <label asp-for="HoraInicio" class="control-label"></label>
-                <input asp-for="HoraInicio" type="time" class="form-control" />
+
+                <input asp-for="HoraInicio"
+                       type="time"
+                       id="horaInicio"
+                       class="form-control" />
+
                 <span asp-validation-for="HoraInicio" class="text-danger"></span>
             </div>
 
             <!-- ============================= -->
-            <!-- CAMPO HORA FIN -->
+            <!-- HORA FIN -->
             <!-- ============================= -->
             <div class="form-group">
                 <label asp-for="HoraFin" class="control-label"></label>
-                <input asp-for="HoraFin" type="time" class="form-control" />
+
+                <input asp-for="HoraFin"
+                       type="time"
+                       id="horaFin"
+                       class="form-control" />
+
                 <span asp-validation-for="HoraFin" class="text-danger"></span>
             </div>
 
             <!-- ============================= -->
-            <!-- CAMPO MOTIVO -->
+            <!-- MOTIVO -->
             <!-- ============================= -->
             <div class="form-group">
                 <label asp-for="Motivo" class="control-label"></label>
-
-                <!-- Campo de texto para escribir el motivo -->
                 <input asp-for="Motivo" class="form-control" />
-
                 <span asp-validation-for="Motivo" class="text-danger"></span>
             </div>
 
             <!-- ============================= -->
-            <!-- SELECCIÓN DE SALA -->
+            <!-- SALA -->
             <!-- ============================= -->
             <div class="form-group">
                 <label asp-for="SalaId" class="control-label"></label>
 
-                <!--
-                    Lista desplegable cargada desde el controlador
-                    ViewBag.SalaId contiene la lista de salas
-                -->
                 <select asp-for="SalaId"
                         asp-items="ViewBag.SalaId"
                         class="form-control">
-
-                    <!-- Opción por defecto -->
                     <option value="">-- Seleccione una sala --</option>
                 </select>
 
@@ -94,14 +88,7 @@
             <!-- BOTONES -->
             <!-- ============================= -->
             <div class="form-group mt-3">
-
-                <!--
-                    Botón que envía el formulario
-                    type="submit" es obligatorio para ejecutar el POST
-                -->
                 <input type="submit" value="Agendar Reunión" class="btn btn-primary" />
-
-                <!-- Botón para volver a la lista sin guardar -->
                 <a asp-action="Index" class="btn btn-secondary">Volver</a>
             </div>
 
@@ -111,10 +98,57 @@
 
 @section Scripts {
     @{
-        /*
-            Activa validaciones del lado del cliente (JavaScript)
-            Para que Required y otras reglas funcionen sin recargar
-        */
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const fechaInput = document.getElementById("fecha");
+            const horaInicio = document.getElementById("horaInicio");
+
+            // ========================================================
+            // BLOQUEAR HORAS PASADAS SI ES HOY
+            // ========================================================
+            function actualizarMinHora() {
+                const hoy = new Date();
+                const fechaSeleccionada = new Date(fechaInput.value);
+
+                if (
+                    fechaSeleccionada.getFullYear() === hoy.getFullYear() &&
+                    fechaSeleccionada.getMonth() === hoy.getMonth() &&
+                    fechaSeleccionada.getDate() === hoy.getDate()
+                ) {
+                    let horas = hoy.getHours().toString().padStart(2, '0');
+                    let minutos = hoy.getMinutes().toString().padStart(2, '0');
+
+                    horaInicio.min = `${horas}:${minutos}`;
+                } else {
+                    horaInicio.min = "00:00";
+                }
+            }
+
+            fechaInput.addEventListener("change", actualizarMinHora);
+
+            // ========================================================
+            // VALIDACIÓN EXTRA ANTES DE ENVIAR
+            // ========================================================
+            document.querySelector("form").addEventListener("submit", function (e) {
+
+                const fecha = fechaInput.value;
+                const hora = horaInicio.value;
+
+                if (!fecha || !hora) return;
+
+                const fechaHora = new Date(`${fecha}T${hora}`);
+                const ahora = new Date();
+
+                if (fechaHora < ahora) {
+                    alert("No puedes reservar en una hora pasada.");
+                    e.preventDefault();
+                }
+            });
+
+        });
+    </script>
 }
