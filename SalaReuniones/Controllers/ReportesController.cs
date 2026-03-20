@@ -15,28 +15,24 @@ namespace SalaReuniones.Controllers
     /// ============================================================
     /// CONTROLADOR DE REPORTES Y ESTADÍSTICAS
     /// ------------------------------------------------------------
-    /// Funcionalidades:
-    /// - Dashboard administrativo
-    /// - Filtros por rango de fechas
-    /// - API JSON para Chart.js
-    /// - Exportación a PDF profesional con logo
+    /// ✔ Dashboard administrativo
+    /// ✔ Filtros por fechas
+    /// ✔ API para Chart.js
+    /// ✔ Exportación PDF profesional
     ///
-    /// Seguridad:
-    /// SOLO Administradores
+    ///  SOLO Administradores
     /// ============================================================
     /// </summary>
     [Authorize(Roles = "Administrador")]
     public class ReportesController : Controller
     {
         //----------------------------------------------------------
-        // INYECCIÓN DE DEPENDENCIAS
+        // DEPENDENCIAS
         //----------------------------------------------------------
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _env;
 
-        public ReportesController(
-            ApplicationDbContext context,
-            IWebHostEnvironment env)
+        public ReportesController(ApplicationDbContext context, IWebHostEnvironment env)
         {
             _context = context;
             _env = env;
@@ -44,50 +40,39 @@ namespace SalaReuniones.Controllers
 
         // ============================================================
         // DASHBOARD ADMINISTRATIVO
-        // URL: /Reportes/Dashboard
         // ============================================================
-        public async Task<IActionResult> Dashboard(
-            int? dias,
-            DateTime? fechaInicio,
-            DateTime? fechaFin)
+        public async Task<IActionResult> Dashboard(int? dias, DateTime? fechaInicio, DateTime? fechaFin)
         {
-            //----------------------------------------------------------
-            // QUERY BASE
-            //----------------------------------------------------------
             var query = _context.Reservas.AsQueryable();
 
             //----------------------------------------------------------
-            // FILTRO POR ÚLTIMOS DÍAS
+            // FILTROS
             //----------------------------------------------------------
             if (dias.HasValue)
             {
                 var desde = DateTime.Today.AddDays(-dias.Value);
                 query = query.Where(r => r.Fecha >= desde);
-
                 ViewBag.FiltroActivo = $"Últimos {dias} días";
             }
 
-            //----------------------------------------------------------
-            // FILTRO POR RANGO DE FECHAS
-            //----------------------------------------------------------
             if (fechaInicio.HasValue && fechaFin.HasValue)
             {
                 query = query.Where(r =>
                     r.Fecha >= fechaInicio.Value &&
                     r.Fecha <= fechaFin.Value);
 
-                ViewBag.FiltroActivo =
-                    $"{fechaInicio:dd/MM/yyyy} - {fechaFin:dd/MM/yyyy}";
+                ViewBag.FiltroActivo = $"{fechaInicio:dd/MM/yyyy} - {fechaFin:dd/MM/yyyy}";
             }
 
             //----------------------------------------------------------
-            // EJECUTAR CONSULTA
+            // EJECUCIÓN
             //----------------------------------------------------------
             var reservas = await query.ToListAsync();
             var hoy = DateTime.Today;
+            var ahora = DateTime.Now;
 
             //----------------------------------------------------------
-            // KPIs PARA EL DASHBOARD
+            // KPIs
             //----------------------------------------------------------
             ViewBag.TotalReservas = reservas.Count;
 
@@ -97,14 +82,18 @@ namespace SalaReuniones.Controllers
             ViewBag.TotalUsuarios =
                 await _context.Users.CountAsync();
 
+            //  LÓGICA REAL (NO depende de Estado)
             ViewBag.ReservasActivas =
-                reservas.Count(r => r.Estado == EstadoReserva.Activa);
+                reservas.Count(r => r.Fecha.Date.Add(r.HoraFin) >= ahora);
+
+            ViewBag.ReservasFinalizadas =
+                reservas.Count(r => r.Fecha.Date.Add(r.HoraFin) < ahora);
 
             return View();
         }
 
         // ============================================================
-        // API JSON PARA GRÁFICAS (Chart.js)
+        // API PARA GRÁFICAS (Chart.js)
         // ============================================================
         [HttpGet]
         public async Task<IActionResult> GetDashboardData(
@@ -117,7 +106,7 @@ namespace SalaReuniones.Controllers
                 .AsQueryable();
 
             //----------------------------------------------------------
-            // APLICAR FILTROS
+            // FILTROS
             //----------------------------------------------------------
             if (dias.HasValue)
             {
@@ -132,11 +121,13 @@ namespace SalaReuniones.Controllers
                     r.Fecha <= fechaFin);
             }
 
+            var ahora = DateTime.Now;
+
             //----------------------------------------------------------
             // RESERVAS ACTIVAS POR SALA
             //----------------------------------------------------------
             var reservasPorSala = await query
-                .Where(r => r.Estado == EstadoReserva.Activa)
+                .Where(r => r.Fecha.Date.Add(r.HoraFin) >= ahora)
                 .GroupBy(r => r.Sala!.Nombre)
                 .Select(g => new
                 {
@@ -146,7 +137,7 @@ namespace SalaReuniones.Controllers
                 .ToListAsync();
 
             //----------------------------------------------------------
-            // RESERVAS POR DÍA
+            // RESERVAS POR DÍA (histórico completo)
             //----------------------------------------------------------
             var reservasPorDia = await query
                 .GroupBy(r => r.Fecha.Date)
@@ -166,20 +157,20 @@ namespace SalaReuniones.Controllers
         }
 
         // ============================================================
-        // EXPORTAR REPORTE A PDF
+        // EXPORTAR PDF
         // ============================================================
         public async Task<IActionResult> ExportarPDF(
             int? dias,
             DateTime? fechaInicio,
             DateTime? fechaFin)
         {
-            //----------------------------------------------------------
-            // QUERY BASE + FILTROS
-            //----------------------------------------------------------
             var query = _context.Reservas
                 .Include(r => r.Sala)
                 .AsQueryable();
 
+            //----------------------------------------------------------
+            // FILTROS
+            //----------------------------------------------------------
             if (dias.HasValue)
             {
                 var desde = DateTime.Today.AddDays(-dias.Value);
@@ -194,14 +185,12 @@ namespace SalaReuniones.Controllers
             }
 
             var reservas = await query.ToListAsync();
+            var ahora = DateTime.Now;
 
             //----------------------------------------------------------
-            // CARGAR LOGO DESDE wwwroot/images
+            // LOGO
             //----------------------------------------------------------
-            var logoPath = Path.Combine(
-                _env.WebRootPath,
-                "images",
-                "HaloLogoBlue.png");
+            var logoPath = Path.Combine(_env.WebRootPath, "images", "HaloLogoBlue.png");
 
             byte[]? logoBytes = null;
 
@@ -209,7 +198,7 @@ namespace SalaReuniones.Controllers
                 logoBytes = System.IO.File.ReadAllBytes(logoPath);
 
             //----------------------------------------------------------
-            // CREAR DOCUMENTO PDF
+            // PDF
             //----------------------------------------------------------
             var document = Document.Create(container =>
             {
@@ -217,54 +206,26 @@ namespace SalaReuniones.Controllers
                 {
                     page.Margin(30);
 
-                    // ==================================================
                     // HEADER
-                    // ==================================================
-                    page.Header()
-                        .Height(90)
-                        .Column(col =>
+                    page.Header().Height(90).Column(col =>
+                    {
+                        col.Item().Row(row =>
                         {
-                            col.Item().Row(row =>
+                            if (logoBytes != null)
+                                row.ConstantItem(80).Image(logoBytes).FitArea();
+
+                            row.RelativeItem().Column(c =>
                             {
-                                //--------------------------------------------------
-                                // LOGO
-                                //--------------------------------------------------
-                                if (logoBytes != null)
-                                {
-                                    row.ConstantItem(80)
-                                       .Image(logoBytes)
-                                       .FitArea();
-                                }
-
-                                //--------------------------------------------------
-                                // TITULOS
-                                //--------------------------------------------------
-                                row.RelativeItem().Column(c =>
-                                {
-                                    c.Item().Text("SISTEMA SALA DE REUNIONES")
-                                        .FontSize(18)
-                                        .Bold();
-
-                                    c.Item().Text("Reporte Administrativo")
-                                        .FontSize(12);
-
-                                    c.Item().Text(
-                                        $"Generado el {DateTime.Now:dd/MM/yyyy HH:mm}")
-                                        .FontSize(10);
-                                });
+                                c.Item().Text("SISTEMA SALA DE REUNIONES").FontSize(18).Bold();
+                                c.Item().Text("Reporte Administrativo").FontSize(12);
+                                c.Item().Text($"Generado el {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10);
                             });
-
-                            //--------------------------------------------------
-                            // LÍNEA CORPORATIVA
-                            //--------------------------------------------------
-                            col.Item()
-                               .PaddingTop(5)
-                               .LineHorizontal(1);
                         });
 
-                    // ==================================================
+                        col.Item().PaddingTop(5).LineHorizontal(1);
+                    });
+
                     // CONTENIDO
-                    // ==================================================
                     page.Content().PaddingVertical(20).Column(col =>
                     {
                         //--------------------------------------------------
@@ -272,43 +233,33 @@ namespace SalaReuniones.Controllers
                         //--------------------------------------------------
                         col.Item().Row(row =>
                         {
-                            row.RelativeItem()
-                                .Background(Colors.Grey.Lighten3)
-                                .Padding(10)
-                                .Column(kpi =>
-                                {
-                                    kpi.Item().Text("Total Reservas").Bold();
-                                    kpi.Item().Text(reservas.Count.ToString())
-                                        .FontSize(16).Bold();
-                                });
+                            row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(10).Column(kpi =>
+                            {
+                                kpi.Item().Text("Total Reservas").Bold();
+                                kpi.Item().Text(reservas.Count.ToString()).FontSize(16).Bold();
+                            });
 
-                            row.RelativeItem()
-                                .Background(Colors.Grey.Lighten3)
-                                .Padding(10)
-                                .Column(kpi =>
-                                {
-                                    kpi.Item().Text("Reservas Activas").Bold();
-                                    kpi.Item().Text(
-                                        reservas.Count(r => r.Estado == EstadoReserva.Activa).ToString())
-                                        .FontSize(16).Bold();
-                                });
+                            row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(10).Column(kpi =>
+                            {
+                                kpi.Item().Text("Reservas Activas").Bold();
+                                kpi.Item().Text(
+                                    reservas.Count(r => r.Fecha.Date.Add(r.HoraFin) >= ahora).ToString()
+                                ).FontSize(16).Bold();
+                            });
 
-                            row.RelativeItem()
-                                .Background(Colors.Grey.Lighten3)
-                                .Padding(10)
-                                .Column(kpi =>
-                                {
-                                    kpi.Item().Text("Reservas Hoy").Bold();
-                                    kpi.Item().Text(
-                                        reservas.Count(r => r.Fecha.Date == DateTime.Today).ToString())
-                                        .FontSize(16).Bold();
-                                });
+                            row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(10).Column(kpi =>
+                            {
+                                kpi.Item().Text("Reservas Hoy").Bold();
+                                kpi.Item().Text(
+                                    reservas.Count(r => r.Fecha.Date == DateTime.Today).ToString()
+                                ).FontSize(16).Bold();
+                            });
                         });
 
                         col.Item().PaddingTop(20);
 
                         //--------------------------------------------------
-                        // TABLA DE RESERVAS
+                        // TABLA
                         //--------------------------------------------------
                         col.Item().Table(table =>
                         {
@@ -320,9 +271,6 @@ namespace SalaReuniones.Controllers
                                 columns.RelativeColumn();
                             });
 
-                            //--------------------------------------------------
-                            // HEADER TABLA
-                            //--------------------------------------------------
                             table.Header(header =>
                             {
                                 header.Cell().Background(Colors.Blue.Lighten2).Padding(5).Text("Fecha").Bold();
@@ -331,46 +279,38 @@ namespace SalaReuniones.Controllers
                                 header.Cell().Background(Colors.Blue.Lighten2).Padding(5).Text("Hora").Bold();
                             });
 
-                            //--------------------------------------------------
-                            // FILAS
-                            //--------------------------------------------------
                             foreach (var r in reservas)
                             {
+                                var fechaFin = r.Fecha.Date.Add(r.HoraFin);
+
+                                string estado =
+                                    r.Estado == EstadoReserva.Cancelada ? "Cancelada" :
+                                    fechaFin < ahora ? "Finalizada" :
+                                    "Activa";
+
                                 table.Cell().Padding(5).Text(r.Fecha.ToString("dd/MM/yyyy"));
                                 table.Cell().Padding(5).Text(r.Sala?.Nombre ?? "");
-                                table.Cell().Padding(5).Text(r.Estado.ToString());
+                                table.Cell().Padding(5).Text(estado);
                                 table.Cell().Padding(5).Text($"{r.HoraInicio} - {r.HoraFin}");
                             }
                         });
                     });
 
-                    // ==================================================
                     // FOOTER
-                    // ==================================================
-                    page.Footer()
-                        .AlignCenter()
-                        .Text(text =>
-                        {
-                            text.DefaultTextStyle(x => x.FontSize(9));
-
-
-                            text.Span("Sistema desarrollado en .NET 8 | Página ");
-                            text.CurrentPageNumber();
-                            text.Span(" de ");
-                            text.TotalPages();
-                        });
+                    page.Footer().AlignCenter().Text(text =>
+                    {
+                        text.DefaultTextStyle(x => x.FontSize(9));
+                        text.Span("Sistema desarrollado en .NET 8 | Página ");
+                        text.CurrentPageNumber();
+                        text.Span(" de ");
+                        text.TotalPages();
+                    });
                 });
             });
 
-            //----------------------------------------------------------
-            // GENERAR PDF
-            //----------------------------------------------------------
             var pdfBytes = document.GeneratePdf();
 
-            return File(
-                pdfBytes,
-                "application/pdf",
-                "ReporteReservas.pdf");
+            return File(pdfBytes, "application/pdf", "ReporteReservas.pdf");
         }
     }
 }

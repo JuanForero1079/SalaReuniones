@@ -7,6 +7,9 @@
 
 <h2 class="text-center">Calendario de Reservas</h2>
 
+<!-- ============================================================
+     FILTRO POR SALA
+============================================================ -->
 <div class="mb-3 text-center">
     <label><strong>Filtrar por Sala:</strong></label>
     <select id="filtroSala" class="form-select w-auto d-inline-block">
@@ -22,9 +25,14 @@
     </select>
 </div>
 
+<!-- ============================================================
+     CALENDARIO
+============================================================ -->
 <div id="calendar"></div>
 
-<!-- Modal -->
+<!-- ============================================================
+     MODAL DETALLE
+============================================================ -->
 <div class="modal fade" id="detalleModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -37,6 +45,7 @@
                 <p><strong>Sala:</strong> <span id="modalSala"></span></p>
                 <p><strong>Usuario:</strong> <span id="modalUsuario"></span></p>
                 <p><strong>Horario:</strong> <span id="modalHorario"></span></p>
+                <p><strong>Estado:</strong> <span id="modalEstado"></span></p>
             </div>
         </div>
     </div>
@@ -54,6 +63,7 @@
         if (!calendarEl) return;
 
         const calendar = new FullCalendar.Calendar(calendarEl, {
+
             initialView: 'timeGridWeek',
             locale: 'es',
 
@@ -67,55 +77,99 @@
                 right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
 
+            // ============================================================
+            // CARGA DE EVENTOS
+            // ============================================================
             events: function (fetchInfo, successCallback, failureCallback) {
 
-               const salaId = filtroSala ? filtroSala.value : "";
+                const salaId = filtroSala ? filtroSala.value : "";
 
-               fetch(`/Reservas/GetReservas?start=${fetchInfo.startStr}&end=${fetchInfo.endStr}&salaId=${salaId}`)
-                   .then(response => response.json())
-                   .then(data => {
+                fetch(`/Reservas/GetReservas?start=${fetchInfo.startStr}&end=${fetchInfo.endStr}&salaId=${salaId}`)
+                    .then(response => response.json())
+                    .then(data => {
 
-                      const eventos = data.map(r => ({
-                          id: r.id,
-                          title: r.title,
-                          start: r.start,
-                          end: r.end,
+                        const eventos = data.map(r => {
 
-                          color: r.backgroundColor, // ⭐ ESTA ES LA CLAVE
+                            //  COLOR BASE (desde BD)
+                            let color = r.backgroundColor;
 
-                          backgroundColor: r.backgroundColor,
-                          borderColor: r.borderColor,
+                            // ===================================================
+                            // LÓGICA VISUAL POR ESTADO (AQUÍ ESTÁ LA MAGIA)
+                            // ====================================================
+                            if (r.estado === "finalizada") {
+                                // Mismo color pero con opacidad (hex alpha)
+                                color = color + "80"; // 50% transparencia
+                            }
+                            else if (r.estado === "cancelada") {
+                                // Color fuerte para indicar problema
+                                color = "#8b0000"; // rojo oscuro
+                            }
+                            // activa → se queda igual
 
-                          extendedProps: {
-                              usuario: r.usuario,
-                              sala: r.sala
-                          }
-                      }));
+                            return {
+                                id: r.id,
+                                title: r.title,
+                                start: r.start,
+                                end: r.end,
 
-                       successCallback(eventos);
-                   })
-                   .catch(err => failureCallback(err));
+                                backgroundColor: color,
+                                borderColor: color,
+
+                                extendedProps: {
+                                    usuario: r.usuario,
+                                    sala: r.sala,
+                                    estado: r.estado
+                                }
+                            };
+                        });
+
+                        successCallback(eventos);
+                    })
+                    .catch(err => failureCallback(err));
             },
 
+            // ============================================================
+            // CLICK → MODAL
+            // ============================================================
             eventClick: function (info) {
 
                 const modalTitulo = document.getElementById("modalTitulo");
                 const modalSala = document.getElementById("modalSala");
                 const modalUsuario = document.getElementById("modalUsuario");
                 const modalHorario = document.getElementById("modalHorario");
+                const modalEstado = document.getElementById("modalEstado");
 
                 if (modalTitulo) modalTitulo.innerText = info.event.title ?? "";
                 if (modalSala) modalSala.innerText = info.event.extendedProps.sala ?? "";
                 if (modalUsuario) modalUsuario.innerText = info.event.extendedProps.usuario ?? "";
-                    if (modalHorario) {
-                        const inicio = info.event.start;
-                        const fin = info.event.end;
 
-                        const horaInicio = inicio ? inicio.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
-                        const horaFin = fin ? fin.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
+                // 🕒 HORAS
+                if (modalHorario) {
+                    const inicio = info.event.start;
+                    const fin = info.event.end;
 
-                        modalHorario.innerText = horaInicio + " - " + horaFin;
-                    }
+                    const horaInicio = inicio
+                        ? inicio.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : "";
+
+                    const horaFin = fin
+                        ? fin.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : "";
+
+                    modalHorario.innerText = horaInicio + " - " + horaFin;
+                }
+
+                // ESTADO
+                if (modalEstado) {
+                    const estado = info.event.extendedProps.estado;
+
+                    if (estado === "finalizada")
+                        modalEstado.innerText = "Finalizada";
+                    else if (estado === "cancelada")
+                        modalEstado.innerText = "Cancelada";
+                    else
+                        modalEstado.innerText = "Activa";
+                }
 
                 const modalElement = document.getElementById('detalleModal');
                 if (modalElement) {
@@ -127,11 +181,14 @@
 
         calendar.render();
 
+        // ============================================================
+        // FILTRO
+        // ============================================================
         if (filtroSala) {
-            filtroSala.addEventListener("change", function () {                calendar.refetchEvents();
+            filtroSala.addEventListener("change", function () {
+                calendar.refetchEvents();
             });
         }
-
     });
 </script>
 
@@ -139,6 +196,6 @@
     #calendar {
         max-width: 1100px;
         margin: 40px auto;
-        min-height: 650px; /* ESTA ES LA ALTURA */
+        min-height: 650px;
     }
 </style>
