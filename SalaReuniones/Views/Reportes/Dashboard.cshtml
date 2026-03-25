@@ -1,18 +1,21 @@
 ﻿@{
     ViewData["Title"] = "Dashboard Administrativo";
 
+    // =========================================================
+    // OBTENER PARÁMETROS DE FECHA DESDE LA URL
+    // =========================================================
     var fechaInicio = Context.Request.Query["fechaInicio"];
     var fechaFin = Context.Request.Query["fechaFin"];
 }
 
 <!-- ========================================================= -->
-<!-- TÍTULO -->
+<!-- TÍTULO DEL PANEL -->
 <!-- ========================================================= -->
 <h2 class="text-center mb-4">📊 Panel Administrativo</h2>
 
 
 <!-- ========================================================= -->
-<!-- FILTRO ACTIVO -->
+<!-- INDICADOR DE FILTRO ACTIVO -->
 <!-- ========================================================= -->
 @if (ViewBag.FiltroActivo != null)
 {
@@ -61,9 +64,10 @@
 
 
 <!-- ========================================================= -->
-<!-- FORMULARIO PERSONALIZADO -->
+<!-- FORMULARIO DE FILTRO PERSONALIZADO -->
 <!-- ========================================================= -->
 <form method="get" asp-action="Dashboard" asp-controller="Reportes" class="mb-4">
+
     <div class="row justify-content-center">
 
         <div class="col-md-3">
@@ -99,11 +103,12 @@
         </div>
 
     </div>
+
 </form>
 
 
 <!-- ========================================================= -->
-<!-- KPIs -->
+<!-- INDICADORES KPI -->
 <!-- ========================================================= -->
 <div class="row text-center mb-4">
 
@@ -139,10 +144,11 @@
 
 
 <!-- ========================================================= -->
-<!-- GRÁFICAS -->
+<!-- GRÁFICAS DEL DASHBOARD -->
 <!-- ========================================================= -->
 <div class="row">
 
+    <!-- GRÁFICA RESERVAS POR SALA -->
     <div class="col-md-6">
         <div class="card shadow p-3">
             <h5 class="text-center">Reservas por Sala</h5>
@@ -150,6 +156,7 @@
         </div>
     </div>
 
+    <!-- GRÁFICA RESERVAS POR DÍA -->
     <div class="col-md-6">
         <div class="card shadow p-3">
             <h5 class="text-center">Reservas por Día</h5>
@@ -161,7 +168,7 @@
 
 
 <!-- ========================================================= -->
-<!-- SCRIPTS -->
+<!-- SCRIPTS DEL DASHBOARD -->
 <!-- ========================================================= -->
 @section Scripts {
 
@@ -169,13 +176,32 @@
 
     <script>
 
+        // =====================================================
+        // OBTENER PARÁMETROS DE FECHA DESDE LA URL
+        // =====================================================
         const params = new URLSearchParams(window.location.search);
 
+        // =====================================================
+        // LLAMADA AL BACKEND PARA OBTENER DATOS DEL DASHBOARD
+        // =====================================================
         fetch('/Reportes/GetDashboardData?' + params.toString())
-            .then(response => response.json())
+            .then(response => {
+                console.log("STATUS:", response.status);
+                return response.json();
+            })
             .then(data => {
 
-                // ====== GRÁFICA POR SALA ======
+                console.log("DATA DASHBOARD:", data);
+
+                // Validar que los datos existan
+                if (!data.reservasPorSala || !data.reservasPorDia) {
+                    console.error("Datos incorrectos:", data);
+                    return;
+                }
+
+                // =====================================================
+                // GRÁFICA 1: RESERVAS POR SALA
+                // =====================================================
                 const salasLabels = data.reservasPorSala.map(x => x.sala);
                 const salasData = data.reservasPorSala.map(x => x.total);
 
@@ -185,16 +211,28 @@
                         labels: salasLabels,
                         datasets: [{
                             label: 'Reservas',
-                            data: salasData
+                            data: salasData,
+                            backgroundColor: [
+                                '#4e73df',
+                                '#1cc88a',
+                                '#36b9cc',
+                                '#f6c23e',
+                                '#e74a3b'
+                            ]
                         }]
                     },
                     options: {
                         responsive: true,
-                        plugins: { legend: { display: false } }
+                        plugins: {
+                            legend: { display: false }
+                        }
                     }
                 });
 
-                // ====== GRÁFICA POR DÍA ======
+
+                // =====================================================
+                // GRÁFICA 2: RESERVAS POR DÍA
+                // =====================================================
                 const diasLabels = data.reservasPorDia.map(x =>
                     new Date(x.fecha).toLocaleDateString()
                 );
@@ -208,7 +246,10 @@
                         datasets: [{
                             label: 'Reservas',
                             data: diasData,
-                            tension: 0.3
+                            tension: 0.3,
+                            borderColor: '#4e73df',
+                            backgroundColor: 'rgba(78,115,223,0.2)',
+                            fill: true
                         }]
                     },
                     options: {
@@ -216,7 +257,11 @@
                     }
                 });
 
+            })
+            .catch(error => {
+                console.error("ERROR FETCH DASHBOARD:", error);
             });
 
     </script>
+
 }

@@ -2,7 +2,49 @@
 @using System.Security.Claims
 
 @{
-    ViewData["Title"] = "Detalles";
+    // ==========================================================
+    // CONFIGURACIÓN GENERAL DE LA VISTA
+    // ==========================================================
+    ViewData["Title"] = "Detalles de Reserva";
+
+// ==========================================================
+// CÁLCULO DEL ESTADO REAL DE LA RESERVA
+// ----------------------------------------------------------
+// Aunque en la BD esté "Activa", el estado real depende
+// del tiempo actual.
+// ==========================================================
+
+var fechaFin = Model.Fecha.Date.Add(Model.HoraFin);
+
+    bool reservaFinalizada = fechaFin < DateTime.Now;
+    bool reservaCancelada = Model.Estado == EstadoReserva.Cancelada;
+
+    // Estado visual dinámico
+    string estadoVisual =
+        reservaCancelada ? "Cancelada" :
+        reservaFinalizada ? "Finalizada" :
+        "Activa";
+
+    // ==========================================================
+    // PERMISOS DE EDICIÓN
+    // ----------------------------------------------------------
+    // Solo se puede editar si:
+    // - No está finalizada
+    // - No está cancelada
+    // - Usuario es dueño o administrador
+    // ==========================================================
+
+    bool puedeEditar =
+        !reservaFinalizada &&
+        !reservaCancelada &&
+        (
+            User.IsInRole("Administrador") ||
+            (
+                User.IsInRole("Usuario") &&
+                Model.UsuarioId == User.FindFirstValue(ClaimTypes.NameIdentifier)
+            )
+        );
+
 }
 
 <h1>Detalles</h1>
@@ -10,8 +52,12 @@
 <div>
     <h4>Reserva</h4>
     <hr />
+
     <dl class="row">
 
+        <!-- ============================= -->
+        <!-- USUARIO -->
+        <!-- ============================= -->
         <dt class="col-sm-2">
             Usuario
         </dt>
@@ -19,6 +65,9 @@
             @Model.Usuario?.Email
         </dd>
 
+        <!-- ============================= -->
+        <!-- FECHA -->
+        <!-- ============================= -->
         <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Fecha)
         </dt>
@@ -26,6 +75,9 @@
             @Model.Fecha.ToShortDateString()
         </dd>
 
+        <!-- ============================= -->
+        <!-- HORA INICIO -->
+        <!-- ============================= -->
         <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.HoraInicio)
         </dt>
@@ -33,6 +85,9 @@
             @Html.DisplayFor(model => model.HoraInicio)
         </dd>
 
+        <!-- ============================= -->
+        <!-- HORA FIN -->
+        <!-- ============================= -->
         <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.HoraFin)
         </dt>
@@ -40,6 +95,9 @@
             @Html.DisplayFor(model => model.HoraFin)
         </dd>
 
+        <!-- ============================= -->
+        <!-- MOTIVO -->
+        <!-- ============================= -->
         <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Motivo)
         </dt>
@@ -47,13 +105,32 @@
             @Html.DisplayFor(model => model.Motivo)
         </dd>
 
+        <!-- ============================= -->
+        <!-- ESTADO VISUAL -->
+        <!-- ============================= -->
         <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Estado)
+            Estado
         </dt>
         <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Estado)
+
+            @if (estadoVisual == "Activa")
+            {
+                <span class="badge bg-success">Activa</span>
+            }
+            else if (estadoVisual == "Finalizada")
+            {
+                <span class="badge bg-dark">Finalizada</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary">Cancelada</span>
+            }
+
         </dd>
 
+        <!-- ============================= -->
+        <!-- SALA -->
+        <!-- ============================= -->
         <dt class="col-sm-2">
             Sala
         </dt>
@@ -62,18 +139,29 @@
         </dd>
 
     </dl>
+
 </div>
+
+<!-- ==========================================================
+     ACCIONES DISPONIBLES
+     ========================================================== -->
 
 <div>
 
-    @if (User.IsInRole("Administrador") ||
-        (User.IsInRole("Usuario") &&
-        Model.UsuarioId == User.FindFirstValue(ClaimTypes.NameIdentifier)))
+    <!-- BOTÓN EDITAR -->
+    @if (puedeEditar)
     {
-        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning">
+        <a asp-action="Edit"
+           asp-route-id="@Model.Id"
+           class="btn btn-warning">
             Editar
         </a>
     }
 
-    <a asp-action="Index" class="btn btn-secondary">Volver</a>
+    <!-- BOTÓN VOLVER -->
+    <a asp-action="Index"
+       class="btn btn-secondary">
+        Volver
+    </a>
+
 </div>

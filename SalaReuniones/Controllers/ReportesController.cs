@@ -19,8 +19,8 @@ namespace SalaReuniones.Controllers
     /// ✔ Filtros por fechas
     /// ✔ API para Chart.js
     /// ✔ Exportación PDF profesional
-    ///
-    ///  SOLO Administradores
+    /// 
+    /// SOLO Administradores
     /// ============================================================
     /// </summary>
     [Authorize(Roles = "Administrador")]
@@ -48,32 +48,35 @@ namespace SalaReuniones.Controllers
             //----------------------------------------------------------
             // FILTROS
             //----------------------------------------------------------
+
             if (dias.HasValue)
             {
                 var desde = DateTime.Today.AddDays(-dias.Value);
                 query = query.Where(r => r.Fecha >= desde);
-                ViewBag.FiltroActivo = $"Últimos {dias} días";
             }
 
-            if (fechaInicio.HasValue && fechaFin.HasValue)
+            if (fechaInicio.HasValue)
             {
-                query = query.Where(r =>
-                    r.Fecha >= fechaInicio.Value &&
-                    r.Fecha <= fechaFin.Value);
+                query = query.Where(r => r.Fecha >= fechaInicio.Value.Date);
+            }
 
-                ViewBag.FiltroActivo = $"{fechaInicio:dd/MM/yyyy} - {fechaFin:dd/MM/yyyy}";
+            if (fechaFin.HasValue)
+            {
+                query = query.Where(r => r.Fecha <= fechaFin.Value.Date.AddDays(1).AddTicks(-1));
             }
 
             //----------------------------------------------------------
             // EJECUCIÓN
             //----------------------------------------------------------
             var reservas = await query.ToListAsync();
+
             var hoy = DateTime.Today;
             var ahora = DateTime.Now;
 
             //----------------------------------------------------------
             // KPIs
             //----------------------------------------------------------
+
             ViewBag.TotalReservas = reservas.Count;
 
             ViewBag.ReservasHoy =
@@ -82,7 +85,7 @@ namespace SalaReuniones.Controllers
             ViewBag.TotalUsuarios =
                 await _context.Users.CountAsync();
 
-            //  LÓGICA REAL (NO depende de Estado)
+            // LÓGICA REAL (no depende del estado en BD)
             ViewBag.ReservasActivas =
                 reservas.Count(r => r.Fecha.Date.Add(r.HoraFin) >= ahora);
 
@@ -108,38 +111,49 @@ namespace SalaReuniones.Controllers
             //----------------------------------------------------------
             // FILTROS
             //----------------------------------------------------------
+
             if (dias.HasValue)
             {
                 var desde = DateTime.Today.AddDays(-dias.Value);
                 query = query.Where(r => r.Fecha >= desde);
             }
 
-            if (fechaInicio.HasValue && fechaFin.HasValue)
+            if (fechaInicio.HasValue)
             {
-                query = query.Where(r =>
-                    r.Fecha >= fechaInicio &&
-                    r.Fecha <= fechaFin);
+                query = query.Where(r => r.Fecha >= fechaInicio.Value.Date);
             }
 
+            if (fechaFin.HasValue)
+            {
+                query = query.Where(r => r.Fecha <= fechaFin.Value.Date.AddDays(1).AddTicks(-1));
+            }
+
+            //----------------------------------------------------------
+            // EJECUTAR CONSULTA
+            //----------------------------------------------------------
+
+            var reservasList = await query.ToListAsync();
             var ahora = DateTime.Now;
 
             //----------------------------------------------------------
             // RESERVAS ACTIVAS POR SALA
             //----------------------------------------------------------
-            var reservasPorSala = await query
+
+            var reservasPorSala = reservasList
                 .Where(r => r.Fecha.Date.Add(r.HoraFin) >= ahora)
-                .GroupBy(r => r.Sala!.Nombre)
+                .GroupBy(r => r.Sala?.Nombre ?? "Sin sala")
                 .Select(g => new
                 {
                     sala = g.Key,
                     total = g.Count()
                 })
-                .ToListAsync();
+                .ToList();
 
             //----------------------------------------------------------
-            // RESERVAS POR DÍA (histórico completo)
+            // RESERVAS POR DÍA
             //----------------------------------------------------------
-            var reservasPorDia = await query
+
+            var reservasPorDia = reservasList
                 .GroupBy(r => r.Fecha.Date)
                 .Select(g => new
                 {
@@ -147,7 +161,11 @@ namespace SalaReuniones.Controllers
                     total = g.Count()
                 })
                 .OrderBy(x => x.fecha)
-                .ToListAsync();
+                .ToList();
+
+            //----------------------------------------------------------
+            // RESPUESTA JSON
+            //----------------------------------------------------------
 
             return Json(new
             {
@@ -171,18 +189,26 @@ namespace SalaReuniones.Controllers
             //----------------------------------------------------------
             // FILTROS
             //----------------------------------------------------------
+
             if (dias.HasValue)
             {
                 var desde = DateTime.Today.AddDays(-dias.Value);
                 query = query.Where(r => r.Fecha >= desde);
             }
 
-            if (fechaInicio.HasValue && fechaFin.HasValue)
+            if (fechaInicio.HasValue)
             {
-                query = query.Where(r =>
-                    r.Fecha >= fechaInicio &&
-                    r.Fecha <= fechaFin);
+                query = query.Where(r => r.Fecha >= fechaInicio.Value.Date);
             }
+
+            if (fechaFin.HasValue)
+            {
+                query = query.Where(r => r.Fecha <= fechaFin.Value.Date.AddDays(1).AddTicks(-1));
+            }
+
+            //----------------------------------------------------------
+            // EJECUTAR CONSULTA
+            //----------------------------------------------------------
 
             var reservas = await query.ToListAsync();
             var ahora = DateTime.Now;
@@ -190,6 +216,7 @@ namespace SalaReuniones.Controllers
             //----------------------------------------------------------
             // LOGO
             //----------------------------------------------------------
+
             var logoPath = Path.Combine(_env.WebRootPath, "images", "HaloLogoBlue.png");
 
             byte[]? logoBytes = null;
@@ -198,15 +225,19 @@ namespace SalaReuniones.Controllers
                 logoBytes = System.IO.File.ReadAllBytes(logoPath);
 
             //----------------------------------------------------------
-            // PDF
+            // CREAR PDF
             //----------------------------------------------------------
+
             var document = Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Margin(30);
 
+                    //--------------------------------------------------
                     // HEADER
+                    //--------------------------------------------------
+
                     page.Header().Height(90).Column(col =>
                     {
                         col.Item().Row(row =>
@@ -225,12 +256,16 @@ namespace SalaReuniones.Controllers
                         col.Item().PaddingTop(5).LineHorizontal(1);
                     });
 
+                    //--------------------------------------------------
                     // CONTENIDO
+                    //--------------------------------------------------
+
                     page.Content().PaddingVertical(20).Column(col =>
                     {
-                        //--------------------------------------------------
+                        //----------------------------------------------
                         // KPIs
-                        //--------------------------------------------------
+                        //----------------------------------------------
+
                         col.Item().Row(row =>
                         {
                             row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(10).Column(kpi =>
@@ -258,9 +293,10 @@ namespace SalaReuniones.Controllers
 
                         col.Item().PaddingTop(20);
 
-                        //--------------------------------------------------
+                        //----------------------------------------------
                         // TABLA
-                        //--------------------------------------------------
+                        //----------------------------------------------
+
                         col.Item().Table(table =>
                         {
                             table.ColumnsDefinition(columns =>
@@ -281,11 +317,11 @@ namespace SalaReuniones.Controllers
 
                             foreach (var r in reservas)
                             {
-                                var fechaFin = r.Fecha.Date.Add(r.HoraFin);
+                                var fechaFinReserva = r.Fecha.Date.Add(r.HoraFin);
 
                                 string estado =
                                     r.Estado == EstadoReserva.Cancelada ? "Cancelada" :
-                                    fechaFin < ahora ? "Finalizada" :
+                                    fechaFinReserva < ahora ? "Finalizada" :
                                     "Activa";
 
                                 table.Cell().Padding(5).Text(r.Fecha.ToString("dd/MM/yyyy"));
@@ -296,7 +332,10 @@ namespace SalaReuniones.Controllers
                         });
                     });
 
+                    //--------------------------------------------------
                     // FOOTER
+                    //--------------------------------------------------
+
                     page.Footer().AlignCenter().Text(text =>
                     {
                         text.DefaultTextStyle(x => x.FontSize(9));

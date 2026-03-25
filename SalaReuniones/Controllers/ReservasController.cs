@@ -21,11 +21,12 @@ namespace SalaReuniones.Controllers
     /// ✔ Seguridad por roles
     /// ✔ Endpoint JSON para FullCalendar
     /// ✔ Bloqueo de reservas pasadas (no editables ni eliminables)
+    /// ✔ Cancelación lógica de reservas
     /// ✔ Estado calculado dinámicamente (activa, finalizada, cancelada)
     ///
     /// ARQUITECTURA:
-    /// - Backend → lógica de negocio + estado
-    /// - Frontend → presentación visual (colores dinámicos)
+    /// Backend → lógica de negocio + estado
+    /// Frontend → presentación visual (colores dinámicos)
     /// ============================================================
     /// </summary>
     [Authorize]
@@ -59,9 +60,7 @@ namespace SalaReuniones.Controllers
         [Authorize(Roles = "Administrador,Usuario")]
         public IActionResult Create()
         {
-            ViewData["SalaId"] =
-                new SelectList(_context.Salas, "Id", "Nombre");
-
+            ViewData["SalaId"] = new SelectList(_context.Salas, "Id", "Nombre");
             return View();
         }
 
@@ -74,6 +73,7 @@ namespace SalaReuniones.Controllers
         public async Task<IActionResult> Create(Reserva reserva)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
@@ -81,8 +81,7 @@ namespace SalaReuniones.Controllers
             // VALIDACIÓN 1: Horario lógico
             //----------------------------------------------------------
             if (reserva.HoraFin <= reserva.HoraInicio)
-                ModelState.AddModelError("",
-                    "La hora de fin debe ser mayor que la hora de inicio.");
+                ModelState.AddModelError("", "La hora de fin debe ser mayor que la hora de inicio.");
 
             //----------------------------------------------------------
             // VALIDACIÓN 2: No permitir reservas en el pasado
@@ -90,11 +89,10 @@ namespace SalaReuniones.Controllers
             var fechaHoraInicio = reserva.Fecha.Date.Add(reserva.HoraInicio);
 
             if (fechaHoraInicio < DateTime.Now)
-                ModelState.AddModelError("",
-                    "No puedes crear reservas en una hora pasada.");
+                ModelState.AddModelError("", "No puedes crear reservas en una hora pasada.");
 
             //----------------------------------------------------------
-            // VALIDACIÓN 3: Cruce de reservas (solo activas)
+            // VALIDACIÓN 3: Cruce de reservas en la MISMA SALA
             //----------------------------------------------------------
             bool existeCruce = await _context.Reservas.AnyAsync(r =>
                 r.SalaId == reserva.SalaId &&
@@ -104,12 +102,26 @@ namespace SalaReuniones.Controllers
                 r.HoraFin > reserva.HoraInicio
             );
 
+            //----------------------------------------------------------
+            // VALIDACIÓN 4: Usuario no puede reservar dos salas
+            // al mismo tiempo
+            //----------------------------------------------------------
+            bool usuarioOcupado = await _context.Reservas.AnyAsync(r =>
+                r.UsuarioId == userId &&
+                r.Fecha.Date == reserva.Fecha.Date &&
+                r.Estado == EstadoReserva.Activa &&
+                r.HoraInicio < reserva.HoraFin &&
+                r.HoraFin > reserva.HoraInicio
+            );
+
+            if (usuarioOcupado)
+                ModelState.AddModelError("", "Ya tienes otra reserva en ese horario.");
+
             if (existeCruce)
-                ModelState.AddModelError("",
-                    "Ya existe una reserva en ese horario para esta sala.");
+                ModelState.AddModelError("", "Ya existe una reserva en ese horario para esta sala.");
 
             //----------------------------------------------------------
-            // SI HAY ERRORES → REGRESAR
+            // SI HAY ERRORES
             //----------------------------------------------------------
             if (!ModelState.IsValid)
             {
@@ -137,13 +149,16 @@ namespace SalaReuniones.Controllers
         [Authorize(Roles = "Administrador,Usuario")]
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null) return NotFound();
+            if (id == null)
+                return NotFound();
 
             var reserva = await _context.Reservas.FindAsync(id);
-            if (reserva == null) return NotFound();
+
+            if (reserva == null)
+                return NotFound();
 
             //----------------------------------------------------------
-            // SEGURIDAD: solo dueño o admin
+            // SEGURIDAD
             //----------------------------------------------------------
             if (!User.IsInRole("Administrador") &&
                 reserva.UsuarioId != User.FindFirstValue(ClaimTypes.NameIdentifier))
@@ -174,7 +189,7 @@ namespace SalaReuniones.Controllers
                 return NotFound();
 
             //----------------------------------------------------------
-            // BLOQUEO: reservas ya finalizadas NO se editan
+            // BLOQUEO: reservas finalizadas
             //----------------------------------------------------------
             var fechaFinOriginal =
                 reservaOriginal.Fecha.Date.Add(reservaOriginal.HoraFin);
@@ -190,24 +205,28 @@ namespace SalaReuniones.Controllers
                 return Forbid();
 
             //----------------------------------------------------------
-            // CONSERVAR DATOS CRÍTICOS
+            // CONSERVAR DATOS
             //----------------------------------------------------------
             reserva.UsuarioId = reservaOriginal.UsuarioId;
             reserva.Estado = reservaOriginal.Estado;
 
             //----------------------------------------------------------
-            // VALIDACIONES
+            // VALIDACIÓN 1: horario lógico
             //----------------------------------------------------------
             if (reserva.HoraFin <= reserva.HoraInicio)
-                ModelState.AddModelError("",
-                    "La hora de fin debe ser mayor que la hora de inicio.");
+                ModelState.AddModelError("", "La hora de fin debe ser mayor que la hora de inicio.");
 
+            //----------------------------------------------------------
+            // VALIDACIÓN 2: no permitir editar al pasado
+            //----------------------------------------------------------
             var fechaHoraInicio = reserva.Fecha.Date.Add(reserva.HoraInicio);
 
             if (fechaHoraInicio < DateTime.Now)
-                ModelState.AddModelError("",
-                    "No puedes editar a una hora pasada.");
+                ModelState.AddModelError("", "No puedes editar a una hora pasada.");
 
+            //----------------------------------------------------------
+            // VALIDACIÓN 3: cruce de reservas en la misma sala
+            //----------------------------------------------------------
             bool existeCruce = await _context.Reservas.AnyAsync(r =>
                 r.Id != reserva.Id &&
                 r.SalaId == reserva.SalaId &&
@@ -217,13 +236,25 @@ namespace SalaReuniones.Controllers
                 r.HoraFin > reserva.HoraInicio
             );
 
-            if (existeCruce)
-                ModelState.AddModelError("",
-                    "Ya existe una reserva en ese horario.");
+            //----------------------------------------------------------
+            // VALIDACIÓN 4: usuario no puede tener otra reserva
+            // en el mismo horario
+            //----------------------------------------------------------
+            bool usuarioOcupado = await _context.Reservas.AnyAsync(r =>
+                r.Id != reserva.Id &&
+                r.UsuarioId == reserva.UsuarioId &&
+                r.Fecha.Date == reserva.Fecha.Date &&
+                r.Estado == EstadoReserva.Activa &&
+                r.HoraInicio < reserva.HoraFin &&
+                r.HoraFin > reserva.HoraInicio
+            );
 
-            //----------------------------------------------------------
-            // SI FALLA → REGRESAR
-            //----------------------------------------------------------
+            if (usuarioOcupado)
+                ModelState.AddModelError("", "Ya tienes otra reserva en ese horario.");
+
+            if (existeCruce)
+                ModelState.AddModelError("", "Ya existe una reserva en ese horario.");
+
             if (!ModelState.IsValid)
             {
                 ViewData["SalaId"] =
@@ -242,19 +273,49 @@ namespace SalaReuniones.Controllers
         }
 
         // ============================================================
+        // CANCELAR RESERVA (SOFT DELETE)
+        // ============================================================
+        [Authorize(Roles = "Administrador,Usuario")]
+        public async Task<IActionResult> Cancelar(int id)
+        {
+            var reserva = await _context.Reservas.FindAsync(id);
+
+            if (reserva == null)
+                return NotFound();
+
+            if (!User.IsInRole("Administrador") &&
+                reserva.UsuarioId != User.FindFirstValue(ClaimTypes.NameIdentifier))
+                return Forbid();
+
+            var fechaFin = reserva.Fecha.Date.Add(reserva.HoraFin);
+
+            if (fechaFin < DateTime.Now)
+                return Forbid();
+
+            reserva.Estado = EstadoReserva.Cancelada;
+
+            _context.Update(reserva);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // ============================================================
         // ELIMINAR RESERVA
         // ============================================================
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null) return NotFound();
+            if (id == null)
+                return NotFound();
 
             var reserva = await _context.Reservas
                 .Include(r => r.Sala)
                 .Include(r => r.Usuario)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
-            if (reserva == null) return NotFound();
+            if (reserva == null)
+                return NotFound();
 
             return View(reserva);
         }
@@ -269,9 +330,6 @@ namespace SalaReuniones.Controllers
             if (reserva == null)
                 return NotFound();
 
-            //----------------------------------------------------------
-            // BLOQUEO: no eliminar reservas ya finalizadas
-            //----------------------------------------------------------
             var fechaFin = reserva.Fecha.Date.Add(reserva.HoraFin);
 
             if (fechaFin < DateTime.Now)
@@ -289,14 +347,16 @@ namespace SalaReuniones.Controllers
         [Authorize(Roles = "Administrador,Usuario,Visualizador")]
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null) return NotFound();
+            if (id == null)
+                return NotFound();
 
             var reserva = await _context.Reservas
                 .Include(r => r.Sala)
                 .Include(r => r.Usuario)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
-            if (reserva == null) return NotFound();
+            if (reserva == null)
+                return NotFound();
 
             return View(reserva);
         }
@@ -324,9 +384,6 @@ namespace SalaReuniones.Controllers
             DateTime end,
             int? salaId)
         {
-            //----------------------------------------------------------
-            // QUERY BASE
-            //----------------------------------------------------------
             var query = _context.Reservas
                 .Include(r => r.Sala)
                 .Include(r => r.Usuario)
@@ -341,16 +398,10 @@ namespace SalaReuniones.Controllers
 
             var reservas = await query.ToListAsync();
 
-            //----------------------------------------------------------
-            // MAPEO A EVENTOS (FullCalendar)
-            //----------------------------------------------------------
             var eventos = reservas.Select(r =>
             {
                 var fechaFin = r.Fecha.Date.Add(r.HoraFin);
 
-                //------------------------------------------------------
-                // ESTADO DINÁMICO
-                //------------------------------------------------------
                 string estado;
 
                 if (r.Estado == EstadoReserva.Cancelada)
@@ -360,9 +411,6 @@ namespace SalaReuniones.Controllers
                 else
                     estado = "activa";
 
-                //------------------------------------------------------
-                // COLOR BASE (FRONT LO TRANSFORMA)
-                //------------------------------------------------------
                 var colorBase = r.Sala?.ColorHex ?? "#3788d8";
 
                 return new
@@ -379,7 +427,6 @@ namespace SalaReuniones.Controllers
                     borderColor = colorBase,
 
                     estado = estado,
-
                     usuario = r.Usuario?.Email ?? "Sin usuario",
                     sala = r.Sala?.Nombre ?? "Sin sala"
                 };
@@ -388,4 +435,5 @@ namespace SalaReuniones.Controllers
             return Json(eventos);
         }
     }
+
 }
