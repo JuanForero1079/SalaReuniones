@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.Text;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Security.Claims;
@@ -303,43 +304,43 @@ namespace SalaReuniones.Controllers
         // ============================================================
         // ELIMINAR RESERVA
         // ============================================================
-        [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
-                return NotFound();
+        //[Authorize(Roles = "Administrador")]
+        //public async Task<IActionResult> Delete(int? id)
+        //{
+          //  if (id == null)
+            //    return NotFound();
 
-            var reserva = await _context.Reservas
-                .Include(r => r.Sala)
-                .Include(r => r.Usuario)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            //var reserva = await _context.Reservas
+               // .Include(r => r.Sala)
+                //.Include(r => r.Usuario)
+                //.FirstOrDefaultAsync(m => m.Id == id);
+                
+            //if (reserva == null)
+              //  return NotFound();
 
-            if (reserva == null)
-                return NotFound();
+        //    return View(reserva);
+        //}
 
-            return View(reserva);
-        }
+        //[HttpPost, ActionName("Delete")]
+        //[ValidateAntiForgeryToken]
+        //[Authorize(Roles = "Administrador")]
+        //public async Task<IActionResult> DeleteConfirmed(int id)
+        //{
+            //var reserva = await _context.Reservas.FindAsync(id);
 
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var reserva = await _context.Reservas.FindAsync(id);
+           // if (reserva == null)
+             //   return NotFound();
 
-            if (reserva == null)
-                return NotFound();
+           // var fechaFin = reserva.Fecha.Date.Add(reserva.HoraFin);
 
-            var fechaFin = reserva.Fecha.Date.Add(reserva.HoraFin);
+         //   if (fechaFin < DateTime.Now)
+        //        return Forbid();
 
-            if (fechaFin < DateTime.Now)
-                return Forbid();
+        //   _context.Reservas.Remove(reserva);
+        //    await _context.SaveChangesAsync();
 
-            _context.Reservas.Remove(reserva);
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction(nameof(Index));
-        }
+        //    return RedirectToAction(nameof(Index));
+        //}
 
         // ============================================================
         // DETALLES
@@ -433,6 +434,80 @@ namespace SalaReuniones.Controllers
             });
 
             return Json(eventos);
+        }
+
+        // ============================================================
+        // GENERAR ARCHIVO ICS
+        // ============================================================
+        private byte[] GenerarICS(Reserva reserva)
+        {
+            var inicio = reserva.Fecha.Date.Add(reserva.HoraInicio)
+                .ToUniversalTime()
+                .ToString("yyyyMMddTHHmmssZ");
+
+            var fin = reserva.Fecha.Date.Add(reserva.HoraFin)
+                .ToUniversalTime()
+                .ToString("yyyyMMddTHHmmssZ");
+
+            var uid = Guid.NewGuid().ToString();
+
+            var ics = $@"BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Sistema Salas//ES
+BEGIN:VEVENT
+UID:{uid}
+SUMMARY:Reserva - {reserva.Sala?.Nombre}
+DESCRIPTION:{reserva.Motivo}
+DTSTART:{inicio}
+DTEND:{fin}
+LOCATION:{reserva.Sala?.Nombre}
+STATUS:CONFIRMED
+
+BEGIN:VALARM
+TRIGGER:-PT15M
+ACTION:DISPLAY
+DESCRIPTION:Recordatorio reunión
+END:VALARM
+
+END:VEVENT
+END:VCALENDAR";
+
+            return Encoding.UTF8.GetBytes(ics);
+        }
+
+        // ============================================================
+        // DESCARGAR EVENTO CALENDARIO (.ICS)
+        // ============================================================
+        [Authorize]
+        public async Task<IActionResult> DescargarICS(int id)
+        {
+            var reserva = await _context.Reservas
+                .Include(r => r.Sala)
+                .Include(r => r.Usuario)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (reserva == null)
+                return NotFound();
+
+            //----------------------------------------------------------
+            // VALIDACIÓN DE SEGURIDAD
+            // Solo el usuario que creó la reserva puede descargar
+            // su evento de calendario.
+            //----------------------------------------------------------
+
+            var usuarioId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (reserva.UsuarioId != usuarioId)
+                return Forbid();
+
+            var archivo = GenerarICS(reserva);
+
+            return File(
+                archivo,
+                "text/calendar",
+                $"reserva_{reserva.Id}.ics"
+            );
+
         }
     }
 

@@ -60,8 +60,8 @@ else
                 var fin = item.Fecha.Date.Add(item.HoraFin);
                 var ahora = DateTime.Now;
 
-                bool finalizada = ahora > fin;
-                bool enProceso = ahora >= inicio && ahora <= fin;
+                bool finalizada = item.Estado != EstadoReserva.Cancelada && ahora > fin;
+                bool enProceso = item.Estado != EstadoReserva.Cancelada && ahora >= inicio && ahora <= fin;
 
                 string estadoVisual;
                 string claseColor;
@@ -94,7 +94,7 @@ else
 
                 <tr class="@(enProceso ? "table-warning" : "")">
 
-                    <td>@(item.Usuario?.Email ?? "Sin usuario")</td>
+                    <td>@(item.Usuario?.UserName ?? "Sin usuario")</td>
 
                     <td>@item.Fecha.ToShortDateString()</td>
 
@@ -115,6 +115,7 @@ else
                     <td>
 
                         @if (!finalizada &&
+                                        item.Estado == EstadoReserva.Activa &&
                                         (User.IsInRole("Administrador") ||
                                         (User.IsInRole("Usuario") &&
                                         item.UsuarioId == User.FindFirstValue(ClaimTypes.NameIdentifier))))
@@ -140,18 +141,9 @@ else
                         {
                             <a asp-action="Cancelar"
                                asp-route-id="@item.Id"
-                               class="btn btn-sm btn-secondary me-1"
+                               class="btn btn-sm btn-danger me-1"
                                onclick="return confirm('¿Deseas cancelar esta reserva?');">
                                 Cancelar
-                            </a>
-                        }
-
-                        @if (User.IsInRole("Administrador") && !finalizada)
-                        {
-                            <a asp-action="Delete"
-                               asp-route-id="@item.Id"
-                               class="btn btn-sm btn-danger">
-                                Eliminar
                             </a>
                         }
 

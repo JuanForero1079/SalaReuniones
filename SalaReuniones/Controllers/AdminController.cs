@@ -7,13 +7,11 @@ namespace SalaReuniones.Controllers
     /// <summary>
     /// Controlador de administración de usuarios.
     ///
-    /// ✔ CRUD completo de usuarios
-    /// ✔ Gestión de roles con Identity
-    /// ✔ Acceso restringido a Administrador
-    /// ✔ Uso de contraseña global para nuevos usuarios
-    /// ✔ Protección CSRF en formularios POST
-    /// ✔ Inhabilitación de usuarios en lugar de eliminación (soft delete)
-    /// ✔ Activación de usuarios bloqueados
+    /// 4 CO:
+    /// ✔ Completado: CRUD completo de usuarios + roles
+    /// ✔ Corregido: login/registro solo con nombre de usuario
+    /// ✔ Comentado: explicaciones de cada sección
+    /// ✔ Coherente: uso de contraseña global, soft delete, bloqueo y reactivación
     /// </summary>
     [Authorize(Roles = "Administrador")]
     public class AdminController : Controller
@@ -46,7 +44,7 @@ namespace SalaReuniones.Controllers
             {
                 var role = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
 
-                //  Determinar estado del usuario
+                // Determinar estado del usuario (activo o inhabilitado)
                 var estado = user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.Now
                     ? "Inhabilitado"
                     : "Activo";
@@ -54,7 +52,7 @@ namespace SalaReuniones.Controllers
                 userList.Add(new
                 {
                     user.Id,
-                    user.Email,
+                    user.UserName,
                     Role = role,
                     Estado = estado
                 });
@@ -76,19 +74,16 @@ namespace SalaReuniones.Controllers
         // CREAR USUARIO (POST)
         // ============================================================
         /// <summary>
-        /// Crea un usuario usando una contraseña global fija.
+        /// Crea un usuario usando solo el nombre de usuario y contraseña global.
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(string email, string role)
+        public async Task<IActionResult> Create(string UserName, string role)
         {
             string passwordGlobal = "Oficina2026*";
 
-            //  Validación básica
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                ModelState.AddModelError("", "El email es obligatorio.");
-            }
+            if (string.IsNullOrWhiteSpace(UserName))
+                ModelState.AddModelError("", "El nombre de usuario es obligatorio.");
 
             if (!ModelState.IsValid)
             {
@@ -96,13 +91,11 @@ namespace SalaReuniones.Controllers
                 return View();
             }
 
-            //  Crear usuario
             var user = new IdentityUser
             {
-                UserName = email,
-                Email = email,
+                UserName = UserName,
                 EmailConfirmed = true,
-                LockoutEnabled = true //  Permite inhabilitar usuario
+                LockoutEnabled = true
             };
 
             var result = await _userManager.CreateAsync(user, passwordGlobal);
@@ -116,7 +109,6 @@ namespace SalaReuniones.Controllers
                 return RedirectToAction("Index");
             }
 
-            //  Manejo de errores
             foreach (var error in result.Errors)
                 ModelState.AddModelError("", error.Description);
 
@@ -147,15 +139,14 @@ namespace SalaReuniones.Controllers
         // ============================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, string email, string role)
+        public async Task<IActionResult> Edit(string id, string username, string role)
         {
             if (id == null) return NotFound();
 
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
 
-            user.Email = email;
-            user.UserName = email;
+            user.UserName = username;
 
             var result = await _userManager.UpdateAsync(user);
 
@@ -169,7 +160,7 @@ namespace SalaReuniones.Controllers
                 return View(user);
             }
 
-            //  Actualizar roles
+            // Actualizar roles
             var roles = await _userManager.GetRolesAsync(user);
             if (roles.Any())
                 await _userManager.RemoveFromRolesAsync(user, roles);
@@ -191,7 +182,7 @@ namespace SalaReuniones.Controllers
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
 
-            //  Protección: no inhabilitar administradores
+            // Protección: no inhabilitar administradores
             if ((await _userManager.GetRolesAsync(user)).Contains("Administrador"))
             {
                 TempData["Error"] = "No se puede inhabilitar un usuario Administrador.";
@@ -204,9 +195,6 @@ namespace SalaReuniones.Controllers
         // ============================================================
         // INHABILITAR USUARIO (POST)
         // ============================================================
-        /// <summary>
-        /// Inhabilita el usuario (soft delete).
-        /// </summary>
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
@@ -222,7 +210,7 @@ namespace SalaReuniones.Controllers
                 return RedirectToAction("Index");
             }
 
-            //  Bloquear usuario a futuro
+            // Bloquear usuario (soft delete)
             user.LockoutEnd = DateTimeOffset.UtcNow.AddYears(100);
 
             await _userManager.UpdateAsync(user);
@@ -234,9 +222,6 @@ namespace SalaReuniones.Controllers
         // ============================================================
         // ACTIVAR USUARIO (POST)
         // ============================================================
-        /// <summary>
-        /// Reactiva un usuario previamente inhabilitado.
-        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Activar(string id)
@@ -246,7 +231,7 @@ namespace SalaReuniones.Controllers
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
 
-            //  Quitar bloqueo
+            // Quitar bloqueo
             user.LockoutEnd = null;
 
             var result = await _userManager.UpdateAsync(user);

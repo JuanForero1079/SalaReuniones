@@ -27,8 +27,8 @@ namespace SalaReuniones.Areas.Identity.Pages.Account
         public class InputModel
         {
             [Required]
-            [EmailAddress]
-            public string Email { get; set; } = string.Empty;
+            [Display(Name = "Nombre de usuario")]
+            public string UserName { get; set; } = string.Empty;
         }
 
         public void OnGet()
@@ -48,7 +48,7 @@ namespace SalaReuniones.Areas.Identity.Pages.Account
             string passwordGlobal = "Oficina2026*";
 
             var result = await _signInManager.PasswordSignInAsync(
-                Input.Email,
+                Input.UserName,
                 passwordGlobal,
                 false,
                 lockoutOnFailure: false);
@@ -59,7 +59,7 @@ namespace SalaReuniones.Areas.Identity.Pages.Account
                 return LocalRedirect(returnUrl);
             }
 
-            ModelState.AddModelError(string.Empty, "Correo no válido.");
+            ModelState.AddModelError(string.Empty, "Usuario no válido.");
             return Page();
         }
     }
