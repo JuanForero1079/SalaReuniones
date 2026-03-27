@@ -428,7 +428,7 @@ namespace SalaReuniones.Controllers
                     borderColor = colorBase,
 
                     estado = estado,
-                    usuario = r.Usuario?.Email ?? "Sin usuario",
+                    usuario = r.Usuario?.UserName ?? "Sin usuario",
                     sala = r.Sala?.Nombre ?? "Sin sala"
                 };
             });
