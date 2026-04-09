@@ -51,7 +51,7 @@ else
 
         <tbody>
 
-            @foreach (var item in Model.OrderBy(r => r.Fecha).ThenBy(r => r.HoraInicio))
+            @foreach (var item in Model)
             {
                 // ---------------------------------------------------
                 // CÁLCULO DE ESTADO DINÁMICO
@@ -155,10 +155,29 @@ else
         </tbody>
 
     </table>
+    <div class="mt-3 text-center">
+
+        @for (int i = 1; i <= ViewBag.TotalPaginas; i++)
+        {
+            if (i == ViewBag.PaginaActual)
+            {
+                <span class="btn btn-primary me-1">@i</span>
+            }
+            else
+            {
+                <a class="btn btn-outline-primary me-1"
+                   asp-action="Index"
+                   asp-route-pagina="@i">
+                    @i
+                </a>
+            }
+        }
+
+    </div>
 }
 
 <script>
     setInterval(function () {
-        location.reload();
-    }, 10000);
+        location.location.reload();
+    }, 600000);
 </script>

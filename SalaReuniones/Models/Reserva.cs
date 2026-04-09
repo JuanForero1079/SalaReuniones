@@ -20,17 +20,17 @@ namespace SalaReuniones.Models
         // FECHA Y HORAS
         // ==============================
 
-        // 🔹 Fecha obligatoria
+        //  Fecha obligatoria
         [Required(ErrorMessage = "La fecha es obligatoria.")]
         [DataType(DataType.Date)]
         public DateTime Fecha { get; set; }
 
-        // 🔹 Hora de inicio obligatoria
+        //  Hora de inicio obligatoria
         [Required(ErrorMessage = "La hora de inicio es obligatoria.")]
         [DataType(DataType.Time)]
         public TimeSpan HoraInicio { get; set; }
 
-        // 🔹 Hora de fin obligatoria
+        //  Hora de fin obligatoria
         [Required(ErrorMessage = "La hora de fin es obligatoria.")]
         [DataType(DataType.Time)]
         public TimeSpan HoraFin { get; set; }
@@ -39,9 +39,10 @@ namespace SalaReuniones.Models
         // INFORMACIÓN ADICIONAL
         // ==============================
 
-        // 🔹 Motivo opcional (máximo 250 caracteres)
+        //  Motivo opcional (máximo 250 caracteres)
         [MaxLength(250)]
-        public string Motivo { get; set; } = string.Empty;
+        [Display(Name = "Motivo de la reunión")]
+        public string? Motivo { get; set; }
 
         /*
             ❗ IMPORTANTE:
@@ -54,8 +55,9 @@ namespace SalaReuniones.Models
         // RELACIÓN CON SALA
         // ==============================
 
-        // 🔹 La sala sí es obligatoria (se selecciona en el formulario)
+        //  La sala sí es obligatoria (se selecciona en el formulario)
         [Required(ErrorMessage = "Debe seleccionar una sala.")]
+        [Display(Name = "Sala")]
         public int SalaId { get; set; }
 
         public Sala? Sala { get; set; }

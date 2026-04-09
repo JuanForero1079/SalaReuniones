@@ -1,6 +1,9 @@
 ﻿@model SalaReuniones.Models.Reserva
 
 @{
+    // ============================================================
+    // TÍTULO DE LA PÁGINA
+    // ============================================================
     ViewData["Title"] = "Crear Reserva";
 }
 
@@ -12,17 +15,24 @@
 <div class="row">
     <div class="col-md-4">
 
+        <!-- ============================================================
+             FORMULARIO DE CREACIÓN DE RESERVA
+        ============================================================ -->
         <form asp-action="Create" method="post">
 
+            <!-- ============================================================
+                 MENSAJES DE VALIDACIÓN DEL MODELO
+            ============================================================ -->
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-            <!-- ============================= -->
-            <!-- FECHA -->
-            <!-- ============================= -->
+            <!-- ============================================================
+                 FECHA DE LA RESERVA
+                 Se bloquean fechas anteriores al día actual
+            ============================================================ -->
             <div class="form-group">
+
                 <label asp-for="Fecha" class="control-label"></label>
 
-                <!-- 🔥 BLOQUEA FECHAS PASADAS -->
                 <input asp-for="Fecha"
                        type="date"
                        id="fecha"
@@ -30,12 +40,15 @@
                        min="@DateTime.Now.ToString("yyyy-MM-dd")" />
 
                 <span asp-validation-for="Fecha" class="text-danger"></span>
+
             </div>
 
-            <!-- ============================= -->
-            <!-- HORA INICIO -->
-            <!-- ============================= -->
+            <!-- ============================================================
+                 HORA DE INICIO
+                 Compatible con formato 12h y 24h según el sistema
+            ============================================================ -->
             <div class="form-group">
+
                 <label asp-for="HoraInicio" class="control-label"></label>
 
                 <input asp-for="HoraInicio"
@@ -44,12 +57,15 @@
                        class="form-control" />
 
                 <span asp-validation-for="HoraInicio" class="text-danger"></span>
+
             </div>
 
-            <!-- ============================= -->
-            <!-- HORA FIN -->
-            <!-- ============================= -->
+            <!-- ============================================================
+                 HORA DE FINALIZACIÓN
+                 Debe ser mayor que la hora de inicio
+            ============================================================ -->
             <div class="form-group">
+
                 <label asp-for="HoraFin" class="control-label"></label>
 
                 <input asp-for="HoraFin"
@@ -58,59 +74,87 @@
                        class="form-control" />
 
                 <span asp-validation-for="HoraFin" class="text-danger"></span>
+
             </div>
 
-            <!-- ============================= -->
-            <!-- MOTIVO -->
-            <!-- ============================= -->
+            <!-- ============================================================
+                 MOTIVO DE LA REUNIÓN
+                 Campo opcional
+            ============================================================ -->
             <div class="form-group">
+
                 <label asp-for="Motivo" class="control-label"></label>
-                <input asp-for="Motivo" class="form-control" />
+
+                <input asp-for="Motivo"
+                       class="form-control"
+                       placeholder="Opcional: describa el motivo de la reunión" />
+
                 <span asp-validation-for="Motivo" class="text-danger"></span>
+
             </div>
 
-            <!-- ============================= -->
-            <!-- SALA -->
-            <!-- ============================= -->
+            <!-- ============================================================
+                 SELECCIÓN DE SALA
+                 La etiqueta se controla desde el modelo usando Display
+            ============================================================ -->
             <div class="form-group">
+
                 <label asp-for="SalaId" class="control-label"></label>
 
                 <select asp-for="SalaId"
                         asp-items="ViewBag.SalaId"
                         class="form-control">
+
                     <option value="">-- Seleccione una sala --</option>
+
                 </select>
 
                 <span asp-validation-for="SalaId" class="text-danger"></span>
+
             </div>
 
-            <!-- ============================= -->
-            <!-- BOTONES -->
-            <!-- ============================= -->
+            <!-- ============================================================
+                 BOTONES DE ACCIÓN
+            ============================================================ -->
             <div class="form-group mt-3">
-                <input type="submit" value="Agendar Reunión" class="btn btn-primary" />
-                <a asp-action="Index" class="btn btn-secondary">Volver</a>
+
+                <input type="submit"
+                       value="Agendar Reunión"
+                       class="btn btn-primary" />
+
+                <a asp-action="Index"
+                   class="btn btn-secondary">Volver</a>
+
             </div>
 
         </form>
     </div>
+
 </div>
 
 @section Scripts {
+
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
     <script>
+
+        // ============================================================
+        // CONTROL DE FECHAS Y HORAS DE RESERVA
+        // ============================================================
+
         document.addEventListener("DOMContentLoaded", function () {
 
             const fechaInput = document.getElementById("fecha");
             const horaInicio = document.getElementById("horaInicio");
+            const horaFin = document.getElementById("horaFin");
 
             // ========================================================
-            // BLOQUEAR HORAS PASADAS SI ES HOY
+            // BLOQUEAR HORAS PASADAS SI LA RESERVA ES PARA HOY
             // ========================================================
             function actualizarMinHora() {
+
                 const hoy = new Date();
                 const fechaSeleccionada = new Date(fechaInput.value);
 
@@ -119,36 +163,58 @@
                     fechaSeleccionada.getMonth() === hoy.getMonth() &&
                     fechaSeleccionada.getDate() === hoy.getDate()
                 ) {
+
                     let horas = hoy.getHours().toString().padStart(2, '0');
                     let minutos = hoy.getMinutes().toString().padStart(2, '0');
 
-                    horaInicio.min = `${horas}:${minutos}`;
+                    horaInicio.min = horas + ":" + minutos;
+
                 } else {
+
                     horaInicio.min = "00:00";
+
                 }
+
             }
 
             fechaInput.addEventListener("change", actualizarMinHora);
 
             // ========================================================
-            // VALIDACIÓN EXTRA ANTES DE ENVIAR
+            // VALIDACIONES ANTES DE ENVIAR EL FORMULARIO
             // ========================================================
             document.querySelector("form").addEventListener("submit", function (e) {
 
                 const fecha = fechaInput.value;
-                const hora = horaInicio.value;
+                const inicio = horaInicio.value;
+                const fin = horaFin.value;
 
-                if (!fecha || !hora) return;
+                if (!fecha || !inicio || !fin) return;
 
-                const fechaHora = new Date(`${fecha}T${hora}`);
+                const fechaHoraInicio = new Date(fecha + "T" + inicio);
                 const ahora = new Date();
 
-                if (fechaHora < ahora) {
+                // Evitar reservas en horas pasadas
+                if (fechaHoraInicio < ahora) {
+
                     alert("No puedes reservar en una hora pasada.");
                     e.preventDefault();
+                    return;
+
                 }
+
+                // Evitar hora fin menor o igual a inicio
+                if (fin <= inicio) {
+
+                    alert("La hora de finalización debe ser mayor que la hora de inicio.");
+                    e.preventDefault();
+                    return;
+
+                }
+
             });
 
         });
+
     </script>
+
 }

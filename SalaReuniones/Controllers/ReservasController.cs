@@ -43,14 +43,25 @@ namespace SalaReuniones.Controllers
         // ============================================================
         // LISTAR RESERVAS
         // ============================================================
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int pagina = 1)
         {
-            var reservas = await _context.Reservas
+            int registrosPorPagina = 10;
+
+            var query = _context.Reservas
                 .Include(r => r.Sala)
                 .Include(r => r.Usuario)
                 .OrderByDescending(r => r.Fecha)
-                .ThenBy(r => r.HoraInicio)
+                .ThenBy(r => r.HoraInicio);
+
+            int totalRegistros = await query.CountAsync();
+
+            var reservas = await query
+                .Skip((pagina - 1) * registrosPorPagina)
+                .Take(registrosPorPagina)
                 .ToListAsync();
+
+            ViewBag.TotalPaginas = (int)Math.Ceiling((double)totalRegistros / registrosPorPagina);
+            ViewBag.PaginaActual = pagina;
 
             return View(reservas);
         }
