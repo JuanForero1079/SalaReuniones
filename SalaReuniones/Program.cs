@@ -49,6 +49,26 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 .AddRoles<IdentityRole>() // Habilita roles
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
+// ======================================================
+// CONFIGURACIÓN DE COOKIE DE AUTENTICACIÓN
+// ======================================================
+// Controla duración de sesión y seguridad
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    // Tiempo máximo sin actividad
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+
+    // Renueva la cookie si el usuario sigue activo
+    options.SlidingExpiration = true;
+
+    // Rutas de seguridad
+    options.LoginPath = "/Identity/Account/Login";
+    options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+
+    // Seguridad adicional
+    options.Cookie.HttpOnly = true;
+});
+
 
 // ======================================================
 // CONSTRUCCIÓN DE LA APLICACIÓN
