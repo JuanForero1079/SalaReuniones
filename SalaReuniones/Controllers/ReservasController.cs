@@ -98,9 +98,7 @@ namespace SalaReuniones.Controllers
             //----------------------------------------------------------
             // VALIDACIÓN 2: No permitir reservas en el pasado
             //----------------------------------------------------------
-
             var ahora = DateTime.Now;
-
             var fechaHoraInicio = reserva.Fecha.Date.Add(reserva.HoraInicio);
 
             if (reserva.Fecha.Date == ahora.Date && fechaHoraInicio < ahora)
@@ -124,23 +122,27 @@ namespace SalaReuniones.Controllers
                 r.HoraFin > reserva.HoraInicio
             );
 
-            //----------------------------------------------------------
-            // VALIDACIÓN 4: Usuario no puede reservar dos salas
-            // al mismo tiempo
-            //----------------------------------------------------------
-            bool usuarioOcupado = await _context.Reservas.AnyAsync(r =>
-                r.UsuarioId == userId &&
-                r.Fecha.Date == reserva.Fecha.Date &&
-                r.Estado == EstadoReserva.Activa &&
-                r.HoraInicio < reserva.HoraFin &&
-                r.HoraFin > reserva.HoraInicio
-            );
-
-            if (usuarioOcupado)
-                ModelState.AddModelError("", "Ya tienes otra reserva en ese horario.");
-
             if (existeCruce)
                 ModelState.AddModelError("", "Ya existe una reserva en ese horario para esta sala.");
+
+            //----------------------------------------------------------
+            // VALIDACIÓN 4: Usuario no puede reservar dos salas al mismo tiempo
+            //----------------------------------------------------------
+            var reservaUsuario = await _context.Reservas
+                .Include(r => r.Sala)
+                .FirstOrDefaultAsync(r =>
+                    r.UsuarioId == userId &&
+                    r.Fecha.Date == reserva.Fecha.Date &&
+                    r.Estado == EstadoReserva.Activa &&
+                    r.HoraInicio < reserva.HoraFin &&
+                    r.HoraFin > reserva.HoraInicio
+                );
+
+            if (reservaUsuario != null)
+            {
+                ModelState.AddModelError("",
+                    $"No puedes reservar otra sala en este horario porque ya tienes una reserva en la sala '{reservaUsuario.Sala?.Nombre ?? "Sala desconocida"}' entre {reservaUsuario.HoraInicio:hh\\:mm} y {reservaUsuario.HoraFin:hh\\:mm}.");
+            }
 
             //----------------------------------------------------------
             // SI HAY ERRORES
@@ -267,24 +269,29 @@ namespace SalaReuniones.Controllers
             );
 
             //----------------------------------------------------------
-            // VALIDACIÓN 4: usuario no puede tener otra reserva
-            // en el mismo horario
+            // VALIDACIÓN 4: Usuario no puede reservar dos salas
+            // al mismo tiempo
             //----------------------------------------------------------
-            bool usuarioOcupado = await _context.Reservas.AnyAsync(r =>
-                r.Id != reserva.Id &&
-                r.UsuarioId == reserva.UsuarioId &&
-                r.Fecha.Date == reserva.Fecha.Date &&
-                r.Estado == EstadoReserva.Activa &&
-                r.HoraInicio < reserva.HoraFin &&
-                r.HoraFin > reserva.HoraInicio
-            );
+            var reservaUsuario = await _context.Reservas
+                .Include(r => r.Sala)
+                .FirstOrDefaultAsync(r =>
+                    r.Id != reserva.Id &&
+                    r.UsuarioId == reserva.UsuarioId &&
+                    r.Fecha.Date == reserva.Fecha.Date &&
+                    r.Estado == EstadoReserva.Activa &&
+                    r.HoraInicio < reserva.HoraFin &&
+                    r.HoraFin > reserva.HoraInicio
+                );
 
-            if (usuarioOcupado)
-                ModelState.AddModelError("", "Ya tienes otra reserva en ese horario.");
+            if (reservaUsuario != null)
+            {
+                ModelState.AddModelError("",
+                    $"No puedes reservar otra sala en este horario porque ya tienes una reserva en la sala '{reservaUsuario.Sala?.Nombre ?? "Sala desconocida"}' entre {reservaUsuario.HoraInicio:hh\\:mm} y {reservaUsuario.HoraFin:hh\\:mm}.");
+            }
 
-            if (existeCruce)
-                ModelState.AddModelError("", "Ya existe una reserva en ese horario.");
-
+            //----------------------------------------------------------
+            // SI HAY ERRORES
+            //----------------------------------------------------------
             if (!ModelState.IsValid)
             {
                 ViewData["SalaId"] =

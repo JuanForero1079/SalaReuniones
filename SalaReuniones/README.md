@@ -2,21 +2,36 @@
 
 Aplicación web desarrollada en **ASP.NET Core MVC (.NET 8)** para la gestión de reservas de salas dentro de una organización.
 
-El sistema permite administrar **usuarios, salas y reservas**, con control de acceso por roles, visualización en calendario, generación automática de **archivos ICS para calendarios** y generación de **reportes administrativos con métricas y exportación a PDF**.
+El sistema permite administrar **usuarios, salas y reservas**, con control de acceso por roles, visualización en calendario, generación automática de **archivos ICS** para integración con calendarios y generación de **reportes administrativos en PDF**.
 
 Además, implementa un sistema de **estados dinámicos de reserva**, permitiendo identificar si una reunión está **Agendada, En proceso, Finalizada o Cancelada**, calculado automáticamente según la hora actual.
 
 ---
 
+# Características Principales
+
+* Gestión de **usuarios y roles**
+* Administración de **salas de reuniones**
+* Creación y gestión de **reservas**
+* **Calendario interactivo**
+* Estados dinámicos de reuniones
+* **Exportación a calendario (.ICS)**
+* **Dashboard administrativo con métricas**
+* **Reportes PDF**
+* Control de **sesiones por inactividad**
+* Validaciones avanzadas para evitar conflictos de horario
+
+---
+
 # Arquitectura del Proyecto
 
-El sistema sigue el patrón **MVC (Modelo - Vista - Controlador)**.
+El sistema sigue el patrón **MVC (Model – View – Controller)**.
 
-## Modelos (Models)
+## Models
 
-Representan la estructura de la base de datos y la lógica de datos mediante **Entity Framework Core**.
+Representan la estructura de datos y la interacción con la base de datos mediante **Entity Framework Core**.
 
-## Vistas (Views)
+## Views
 
 Interfaz de usuario desarrollada con:
 
@@ -26,14 +41,14 @@ Interfaz de usuario desarrollada con:
 * JavaScript
 * Bootstrap Icons
 
-## Controladores (Controllers)
+## Controllers
 
-Gestionan:
+Encargados de manejar:
 
 * lógica de negocio
 * validaciones
-* comunicación con la base de datos
-* endpoints de API para frontend dinámico
+* acceso a datos
+* endpoints para interacción dinámica con el frontend
 
 ---
 
@@ -55,11 +70,11 @@ Gestionan:
 * Chart.js
 * Bootstrap Icons
 
-## Reportes
+## Generación de Reportes
 
 * QuestPDF
 
-## Integración de Calendarios
+## Integración con Calendarios
 
 Generación automática de archivos **ICS** compatibles con:
 
@@ -69,38 +84,40 @@ Generación automática de archivos **ICS** compatibles con:
 
 ---
 
-# Base de Datos: SalaReunionesDB
+# Base de Datos
 
-La base de datos está implementada en **SQL Server** y gestionada mediante **Entity Framework Core**.
+Nombre de la base de datos:
+
+```
+SalaReunionesDB
+```
+
+Implementada en **SQL Server** y gestionada mediante **Entity Framework Core**.
 
 ---
 
-# Tablas Principales del Sistema
+# Tablas Principales
 
----
+## Tabla: Salas
 
-# Tabla: Salas
+Contiene la información de las salas disponibles.
 
-Contiene la información de las salas disponibles para reservas.
+| Campo    | Tipo          | Descripción                  |
+| -------- | ------------- | ---------------------------- |
+| Id       | int (PK)      | Identificador único          |
+| Nombre   | nvarchar(100) | Nombre de la sala            |
+| ColorHex | nvarchar(7)   | Color usado en el calendario |
 
-| Campo    | Tipo          | Descripción                      |
-| -------- | ------------- | -------------------------------- |
-| Id       | int (PK)      | Identificador único              |
-| Nombre   | nvarchar(100) | Nombre de la sala                |
-| ColorHex | nvarchar(7)   | Color utilizado en el calendario |
-
-Salas incluidas en el sistema:
+Salas incluidas:
 
 * **Sala Principal → #94A5A4**
 * **Sala Secundaria → #3788d8**
 
-El color permite distinguir visualmente cada sala en el calendario.
-
 ---
 
-# Tabla: Reservas
+## Tabla: Reservas
 
-Tabla central del sistema donde se almacenan todas las reservas.
+Tabla central del sistema.
 
 | Campo      | Tipo          | Descripción                 |
 | ---------- | ------------- | --------------------------- |
@@ -111,13 +128,13 @@ Tabla central del sistema donde se almacenan todas las reservas.
 | Motivo     | nvarchar(250) | Motivo de la reunión        |
 | Estado     | int           | Estado de la reserva        |
 | SalaId     | int (FK)      | Sala reservada              |
-| UsuarioId  | nvarchar(450) | Usuario que creó la reserva |
+| UsuarioId  | nvarchar(450) | Usuario creador             |
 
 ---
 
 # Campo Motivo Opcional
 
-El campo **Motivo** es opcional y permite crear reservas sin especificar motivo.
+El campo **Motivo** es opcional.
 
 Configuración en el modelo:
 
@@ -137,14 +154,14 @@ ALTER COLUMN Motivo NVARCHAR(250) NULL;
 
 # Estados de Reserva
 
-El campo **Estado** se almacena en base de datos mediante un Enum:
+Estado almacenado en base de datos:
 
 | Valor | Estado    |
 | ----- | --------- |
 | 0     | Activa    |
 | 1     | Cancelada |
 
-Adicionalmente, el sistema calcula **estados dinámicos según la hora actual**.
+Estados calculados dinámicamente:
 
 | Estado     | Descripción              | Color      |
 | ---------- | ------------------------ | ---------- |
@@ -153,16 +170,14 @@ Adicionalmente, el sistema calcula **estados dinámicos según la hora actual**.
 | Finalizada | La reunión terminó       | ⚫ Negro    |
 | Cancelada  | Cancelada manualmente    | ⚪ Gris     |
 
-Estos estados **no se almacenan en la base de datos**, sino que se calculan dinámicamente.
+Estos estados **no se almacenan en la base de datos**.
 
 ---
 
 # Relaciones de Base de Datos
 
-Relaciones principales:
-
-* Una **Sala** puede tener muchas **Reservas**
-* Un **Usuario** puede crear muchas **Reservas**
+* Una **Sala** puede tener múltiples **Reservas**
+* Un **Usuario** puede crear múltiples **Reservas**
 * Cada **Reserva** pertenece a una sola **Sala**
 * Cada **Reserva** pertenece a un solo **Usuario**
 
@@ -170,9 +185,9 @@ Relaciones principales:
 
 # Sistema de Autenticación
 
-El sistema utiliza **ASP.NET Identity**.
+Se utiliza **ASP.NET Identity**.
 
-Tablas utilizadas:
+Tablas principales:
 
 * AspNetUsers
 * AspNetRoles
@@ -194,13 +209,7 @@ Tablas utilizadas:
 
 ---
 
-# Funcionalidades del Sistema
-
----
-
 # Gestión de Usuarios
-
-Administración de usuarios mediante **ASP.NET Identity**.
 
 Funciones disponibles:
 
@@ -209,17 +218,10 @@ Funciones disponibles:
 * Asignar roles
 * Buscar usuarios por nombre
 * Filtrar usuarios por rol
-* Paginación de usuarios
+* Paginación
 * Activar usuarios
 * Inhabilitar usuarios (soft delete)
-* Prevención de usuarios duplicados
-
-El listado de usuarios incluye:
-
-* **búsqueda por username**
-* **filtro por rol**
-* **ordenamiento automático por rol y nombre**
-* **paginación para mejorar el rendimiento**
+* Prevención de duplicados
 
 Acceso exclusivo para **Administrador**.
 
@@ -227,19 +229,17 @@ Acceso exclusivo para **Administrador**.
 
 # Gestión de Salas
 
-Permite administrar las salas disponibles.
-
 Funciones:
 
 * Crear salas
 * Editar salas
-* Definir color en calendario
+* Definir color para el calendario
 
 ---
 
 # Gestión de Reservas
 
-Funciones disponibles:
+Funciones:
 
 * Crear reservas
 * Editar reservas
@@ -251,24 +251,24 @@ Funciones disponibles:
 
 # Validaciones del Sistema
 
-El sistema incluye validaciones en **backend y frontend**.
+Validaciones implementadas en **frontend y backend**.
 
-Principales validaciones:
+Principales reglas:
 
 * No permitir reservas en el pasado
-* La hora de fin debe ser mayor que la hora de inicio
+* La hora de fin debe ser mayor que la de inicio
 * No permitir reservas superpuestas en la misma sala
 * No permitir editar reservas finalizadas
 * No permitir nombres de usuario duplicados
-* Compatibilidad con **formatos de hora 12h (AM/PM) y 24h**
+* Compatibilidad con **formato 12h y 24h**
 
-Las horas se almacenan en la base de datos usando el tipo:
+Las horas se almacenan como:
 
 ```
 time
 ```
 
-Esto garantiza compatibilidad entre diferentes configuraciones regionales de los equipos.
+Esto evita problemas de configuración regional.
 
 ---
 
@@ -278,7 +278,7 @@ El sistema implementa **cancelación lógica (soft cancel)**.
 
 Cuando una reserva se cancela:
 
-* se mantiene el registro en la base de datos
+* el registro se mantiene
 * el estado cambia a **Cancelada**
 * no aparece en el calendario activo
 
@@ -288,12 +288,12 @@ Esto permite mantener **historial y auditoría**.
 
 # Calendario de Reservas
 
-El sistema incluye un calendario interactivo desarrollado con **FullCalendar**.
+Calendario interactivo implementado con **FullCalendar**.
 
 Funciones:
 
-* vista semanal
 * vista mensual
+* vista semanal
 * colores por sala
 * detalle de reserva al hacer clic
 
@@ -305,21 +305,9 @@ Endpoint utilizado:
 
 ---
 
-# Integración con Calendarios (ICS)
-
-Al crear una reserva el sistema genera un archivo **.ics** compatible con:
-
-* Google Calendar
-* Outlook
-* Apple Calendar
-
-Esto permite que el usuario agregue la reunión directamente a su calendario personal.
-
----
-
 # Dashboard Administrativo
 
-El sistema incluye un **panel administrativo con métricas y estadísticas**.
+Panel administrativo con métricas del sistema.
 
 Indicadores:
 
@@ -337,13 +325,13 @@ Gráficas generadas con **Chart.js**:
 
 # Reportes Administrativos
 
-El sistema permite exportar reportes en **PDF profesional**.
+El sistema permite exportar **reportes PDF profesionales**.
 
 Contenido del reporte:
 
 * encabezado institucional
 * métricas del sistema
-* listado detallado de reservas
+* listado de reservas
 
 Tecnología utilizada:
 
@@ -353,20 +341,18 @@ Tecnología utilizada:
 
 # Gestión de Sesiones
 
-El sistema incluye **control de sesiones por inactividad**.
+Control automático de sesiones por inactividad.
 
 Características:
 
-* cierre automático de sesión tras periodo de inactividad
-* protección contra sesiones abiertas en equipos compartidos
+* cierre automático tras periodo de inactividad
+* protección en equipos compartidos
 
 ---
 
 # Ejecución del Proyecto
 
----
-
-# Ejecutar en Visual Studio
+## Ejecutar en Visual Studio
 
 1. Abrir la solución
 2. Configurar la cadena de conexión en `appsettings.json`
@@ -375,13 +361,11 @@ Características:
 
 ---
 
-# Despliegue en Servidor (IIS)
+# Despliegue en IIS
 
 El sistema puede desplegarse en **Windows Server con IIS**.
 
----
-
-# 1 Instalar IIS
+## 1. Instalar IIS
 
 ```
 Administrador del Servidor
@@ -391,7 +375,7 @@ Administrador del Servidor
 
 ---
 
-# 2 Instalar .NET Hosting Bundle
+## 2. Instalar .NET Hosting Bundle
 
 Descargar:
 
@@ -407,7 +391,7 @@ iisreset
 
 ---
 
-# 3 Publicar el Proyecto
+## 3. Publicar el Proyecto
 
 En Visual Studio:
 
@@ -425,9 +409,7 @@ C:\Publicaciones\SalaReuniones
 
 ---
 
-# 4 Copiar al Servidor
-
-Copiar a:
+## 4. Copiar al Servidor
 
 ```
 C:\inetpub\SalaReuniones
@@ -435,14 +417,7 @@ C:\inetpub\SalaReuniones
 
 ---
 
-# 5 Crear Application Pool
-
-```
-Application Pools
-→ Add Application Pool
-```
-
-Configuración:
+## 5. Crear Application Pool
 
 ```
 Nombre: SalaReunionesPool
@@ -452,14 +427,7 @@ Pipeline Mode: Integrated
 
 ---
 
-# 6 Crear Sitio Web
-
-```
-Sites
-→ Add Website
-```
-
-Configuración:
+## 6. Crear Sitio Web
 
 ```
 Site Name: SalaReuniones
@@ -470,7 +438,7 @@ Application Pool: SalaReunionesPool
 
 ---
 
-# 7 Permisos de Carpeta
+## 7. Permisos de Carpeta
 
 Asignar permisos a:
 
@@ -478,11 +446,11 @@ Asignar permisos a:
 IIS_IUSRS
 ```
 
-con lectura y ejecución.
+con **lectura y ejecución**.
 
 ---
 
-# 8 Configurar Base de Datos
+## 8. Configurar Base de Datos
 
 Editar:
 
@@ -501,46 +469,28 @@ TrustServerCertificate=True;
 
 ---
 
-# Acceso al Sistema
-
-Una vez publicado:
-
-```
-http://IP_DEL_SERVIDOR
-```
-
----
-
 # Seguridad
 
 El sistema implementa:
 
 * `[Authorize]`
 * control de acceso por roles
-* protección CSRF
+* protección **CSRF**
 * validaciones backend
-
----
-
-# Salas Iniciales
-
-El sistema incluye dos salas:
-
-* Sala Principal
-* Sala Secundaria
 
 ---
 
 # Conclusión
 
-Este sistema permite gestionar reservas de salas de forma **segura, organizada y eficiente**, evitando conflictos de horario y manteniendo historial completo.
+Este sistema permite gestionar reservas de salas de forma **segura, organizada y eficiente**, evitando conflictos de horario y manteniendo un historial completo de reuniones.
 
 Incluye herramientas modernas como:
 
 * calendario interactivo
 * dashboard administrativo
-* exportación de reportes
+* reportes en PDF
 * integración con calendarios
 * administración avanzada de usuarios
 
-lo que permite su uso en **entornos corporativos o institucionales**.
+lo que permite su uso en **entornos corporativos e institucionales**.
+
