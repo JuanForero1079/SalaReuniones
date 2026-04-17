@@ -98,10 +98,20 @@ namespace SalaReuniones.Controllers
             //----------------------------------------------------------
             // VALIDACIÓN 2: No permitir reservas en el pasado
             //----------------------------------------------------------
+
+            var ahora = DateTime.Now;
+
             var fechaHoraInicio = reserva.Fecha.Date.Add(reserva.HoraInicio);
 
-            if (fechaHoraInicio < DateTime.Now)
+            if (reserva.Fecha.Date == ahora.Date && fechaHoraInicio < ahora)
+            {
                 ModelState.AddModelError("", "No puedes crear reservas en una hora pasada.");
+            }
+
+            if (reserva.Fecha.Date < ahora.Date)
+            {
+                ModelState.AddModelError("", "No puedes crear reservas en fechas pasadas.");
+            }
 
             //----------------------------------------------------------
             // VALIDACIÓN 3: Cruce de reservas en la MISMA SALA
@@ -231,10 +241,18 @@ namespace SalaReuniones.Controllers
             //----------------------------------------------------------
             // VALIDACIÓN 2: no permitir editar al pasado
             //----------------------------------------------------------
+            var ahora = DateTime.Now;
             var fechaHoraInicio = reserva.Fecha.Date.Add(reserva.HoraInicio);
 
-            if (fechaHoraInicio < DateTime.Now)
+            if (reserva.Fecha.Date == ahora.Date && fechaHoraInicio < ahora)
+            {
                 ModelState.AddModelError("", "No puedes editar a una hora pasada.");
+            }
+
+            if (reserva.Fecha.Date < ahora.Date)
+            {
+                ModelState.AddModelError("", "No puedes editar a fechas pasadas.");
+            }
 
             //----------------------------------------------------------
             // VALIDACIÓN 3: cruce de reservas en la misma sala

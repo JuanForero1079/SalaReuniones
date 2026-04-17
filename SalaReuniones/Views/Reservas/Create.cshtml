@@ -95,7 +95,6 @@
 
             <!-- ============================================================
                  SELECCIÓN DE SALA
-                 La etiqueta se controla desde el modelo usando Display
             ============================================================ -->
             <div class="form-group">
 
@@ -141,7 +140,8 @@
     <script>
 
         // ============================================================
-        // CONTROL DE FECHAS Y HORAS DE RESERVA
+        // VALIDACIONES DE FECHA Y HORA (FRONTEND)
+        // Complementan las validaciones del backend
         // ============================================================
 
         document.addEventListener("DOMContentLoaded", function () {
@@ -150,38 +150,6 @@
             const horaInicio = document.getElementById("horaInicio");
             const horaFin = document.getElementById("horaFin");
 
-            // ========================================================
-            // BLOQUEAR HORAS PASADAS SI LA RESERVA ES PARA HOY
-            // ========================================================
-            function actualizarMinHora() {
-
-                const hoy = new Date();
-                const fechaSeleccionada = new Date(fechaInput.value);
-
-                if (
-                    fechaSeleccionada.getFullYear() === hoy.getFullYear() &&
-                    fechaSeleccionada.getMonth() === hoy.getMonth() &&
-                    fechaSeleccionada.getDate() === hoy.getDate()
-                ) {
-
-                    let horas = hoy.getHours().toString().padStart(2, '0');
-                    let minutos = hoy.getMinutes().toString().padStart(2, '0');
-
-                    horaInicio.min = horas + ":" + minutos;
-
-                } else {
-
-                    horaInicio.min = "00:00";
-
-                }
-
-            }
-
-            fechaInput.addEventListener("change", actualizarMinHora);
-
-            // ========================================================
-            // VALIDACIONES ANTES DE ENVIAR EL FORMULARIO
-            // ========================================================
             document.querySelector("form").addEventListener("submit", function (e) {
 
                 const fecha = fechaInput.value;
@@ -193,16 +161,25 @@
                 const fechaHoraInicio = new Date(fecha + "T" + inicio);
                 const ahora = new Date();
 
-                // Evitar reservas en horas pasadas
-                if (fechaHoraInicio < ahora) {
+                //------------------------------------------------------
+                // VALIDACIÓN 1
+                // No permitir reservas en horas pasadas SOLO si es hoy
+                //------------------------------------------------------
 
+                if (
+                    fechaHoraInicio.toDateString() === ahora.toDateString() &&
+                    fechaHoraInicio < ahora
+                ) {
                     alert("No puedes reservar en una hora pasada.");
                     e.preventDefault();
                     return;
-
                 }
 
-                // Evitar hora fin menor o igual a inicio
+                //------------------------------------------------------
+                // VALIDACIÓN 2
+                // Hora fin debe ser mayor que hora inicio
+                //------------------------------------------------------
+
                 if (fin <= inicio) {
 
                     alert("La hora de finalización debe ser mayor que la hora de inicio.");

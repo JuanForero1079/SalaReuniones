@@ -1,25 +1,20 @@
-﻿@model IEnumerable<dynamic>
+﻿@model SalaReuniones.ViewModels.UserListViewModel
 
 @{
     ViewData["Title"] = "Administración de Usuarios";
 }
 
-<!-- ========================================================= -->
-<!-- TITULO -->
-<!-- ========================================================= -->
 <h2 class="mb-3">Gestión de Usuarios</h2>
 
 <!-- ========================================================= -->
 <!-- BOTÓN CREAR -->
-<!-- Redirige a la acción Create del AdminController -->
 <!-- ========================================================= -->
 <a asp-action="Create" class="btn btn-primary mb-3">
     ➕ Crear Usuario
 </a>
 
 <!-- ========================================================= -->
-<!-- MENSAJES TEMPORALES -->
-<!-- TempData["Error"] y TempData["Success"] definidos en el Controller -->
+<!-- MENSAJES -->
 <!-- ========================================================= -->
 @if (TempData["Error"] != null)
 {
@@ -36,56 +31,101 @@
 }
 
 <!-- ========================================================= -->
+<!-- BUSQUEDA Y FILTRO -->
+<!-- ========================================================= -->
+<form method="get" class="row g-2 mb-3">
+
+    <!-- BUSCAR USERNAME -->
+    <div class="col-md-4">
+        <input type="text"
+               name="search"
+               value="@Model.Search"
+               class="form-control"
+               placeholder="Buscar usuario..." />
+    </div>
+
+    <!-- FILTRO ROL -->
+    <div class="col-md-3">
+        <select name="roleFilter" class="form-control">
+
+            <option value="">Todos los roles</option>
+
+            @foreach (var role in ViewBag.Roles)
+            {
+                <option value="@role"
+                        selected="@(role == Model.RoleFilter)">
+                    @role
+                </option>
+            }
+
+        </select>
+    </div>
+
+    <!-- BOTÓN BUSCAR -->
+    <div class="col-md-2">
+        <button class="btn btn-dark w-100">
+            🔎 Buscar
+        </button>
+    </div>
+
+</form>
+
+<!-- ========================================================= -->
 <!-- TABLA DE USUARIOS -->
 <!-- ========================================================= -->
 <table class="table table-bordered table-hover">
 
-    <!-- CABECERA -->
     <thead class="table-dark">
         <tr>
-            <th>Usuario</th> <!-- Antes era Email, ahora coincide con UserName -->
+            <th>Usuario</th>
             <th>Rol</th>
-            <th>Estado</th> <!-- Indica Activo / Inhabilitado -->
-            <th style="width: 220px;">Acciones</th> <!-- Editar / Inhabilitar / Activar -->
+            <th>Estado</th>
+            <th style="width:230px;">Acciones</th>
         </tr>
     </thead>
 
     <tbody>
-        @foreach (var user in Model)
+
+        @if (!Model.Users.Any())
         {
             <tr>
-                <!-- ===================================================== -->
-                <!-- NOMBRE DE USUARIO -->
-                <!-- ===================================================== -->
+                <td colspan="4" class="text-center">
+                    No se encontraron usuarios
+                </td>
+            </tr>
+        }
+
+        @foreach (var user in Model.Users)
+        {
+            <tr>
+
+                <!-- USERNAME -->
                 <td>@user.UserName</td>
 
-                <!-- ===================================================== -->
-                <!-- ROL ASIGNADO -->
-                <!-- Muestra "SIN ROL" si no tiene ninguno -->
-                <!-- ===================================================== -->
-                <td>@(user.Role ?? "SIN ROL")</td>
+                <!-- ROL -->
+                <td>@(string.IsNullOrEmpty(user.Role) ? "SIN ROL" : user.Role)</td>
 
-                <!-- ===================================================== -->
-                <!-- ESTADO DEL USUARIO -->
-                <!-- Verde: Activo, Rojo: Inhabilitado -->
-                <!-- ===================================================== -->
+                <!-- ESTADO -->
                 <td>
+
                     @if (user.Estado == "Activo")
                     {
-                        <span class="badge bg-success">Activo</span>
+                        <span class="badge bg-success">
+                            Activo
+                        </span>
                     }
                     else
                     {
-                        <span class="badge bg-danger">Inhabilitado</span>
+                        <span class="badge bg-danger">
+                            Inhabilitado
+                        </span>
                     }
+
                 </td>
 
-                <!-- ===================================================== -->
                 <!-- ACCIONES -->
-                <!-- Editar: siempre disponible -->
-                <!-- Inhabilitar / Activar: dinámico según estado -->
-                <!-- ===================================================== -->
                 <td>
+
                     <!-- EDITAR -->
                     <a asp-action="Edit"
                        asp-route-id="@user.Id"
@@ -93,7 +133,6 @@
                         ✏️ Editar
                     </a>
 
-                    <!-- BOTÓN DINÁMICO -->
                     @if (user.Estado == "Activo")
                     {
                         <!-- INHABILITAR -->
@@ -107,28 +146,51 @@
                     else
                     {
                         <!-- ACTIVAR -->
-                        <form asp-action="Activar" method="post" style="display:inline;">
-                            <input type="hidden" name="id" value="@user.Id" />
+                        <form asp-action="Activar"
+                              method="post"
+                              style="display:inline;">
+
+                            <input type="hidden"
+                                   name="id"
+                                   value="@user.Id" />
+
                             <button class="btn btn-success btn-sm">
                                 ✅ Activar
                             </button>
+
                         </form>
                     }
+
                 </td>
+
             </tr>
         }
+
     </tbody>
 
 </table>
 
 <!-- ========================================================= -->
-<!-- NOTAS TÉCNICAS -->
-<!--
-    ✔ Ahora muestra estado del usuario (Activo / Inhabilitado)
-    ✔ Inhabilitar usa LockoutEnd (no elimina de la BD)
-    ✔ Activar restaura acceso
-    ✔ Mantiene historial del sistema
-    ✔ UX tipo sistema empresarial
-    ✔ Compatible con AdminController.cs 4 CO
--->
+<!-- PAGINACIÓN -->
 <!-- ========================================================= -->
+<nav>
+
+    <ul class="pagination justify-content-center">
+
+        @for (int i = 1; i <= Model.TotalPages; i++)
+        {
+            <li class="page-item @(i == Model.Page ? "active" : "")">
+
+                <a class="page-link"
+                   href="?page=@i&search=@Model.Search&roleFilter=@Model.RoleFilter">
+
+                    @i
+
+                </a>
+
+            </li>
+        }
+
+    </ul>
+
+</nav>
