@@ -89,6 +89,7 @@ namespace SalaReuniones.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
+            
             //----------------------------------------------------------
             // VALIDACIÓN 1: Horario lógico
             //----------------------------------------------------------

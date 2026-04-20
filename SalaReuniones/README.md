@@ -2,7 +2,7 @@
 
 Aplicación web desarrollada en **ASP.NET Core MVC (.NET 8)** para la gestión de reservas de salas dentro de una organización.
 
-El sistema permite administrar **usuarios, salas y reservas**, con control de acceso por roles, visualización en calendario, generación automática de **archivos ICS** para integración con calendarios y generación de **reportes administrativos en PDF**.
+El sistema permite administrar **usuarios, salas y reservas**, con control de acceso por roles, visualización en calendario, generación automática de **archivos ICS** para integración con calendarios externos y generación de **reportes administrativos en PDF**.
 
 Además, implementa un sistema de **estados dinámicos de reserva**, permitiendo identificar si una reunión está **Agendada, En proceso, Finalizada o Cancelada**, calculado automáticamente según la hora actual.
 
@@ -10,7 +10,7 @@ Además, implementa un sistema de **estados dinámicos de reserva**, permitiendo
 
 # Características Principales
 
-* Gestión de **usuarios y roles**
+* Gestión completa de **usuarios y roles**
 * Administración de **salas de reuniones**
 * Creación y gestión de **reservas**
 * **Calendario interactivo**
@@ -20,6 +20,8 @@ Además, implementa un sistema de **estados dinámicos de reserva**, permitiendo
 * **Reportes PDF**
 * Control de **sesiones por inactividad**
 * Validaciones avanzadas para evitar conflictos de horario
+* **Cancelación lógica de reservas**
+* Validación de **integridad de usuario antes de guardar reservas**
 
 ---
 
@@ -49,6 +51,7 @@ Encargados de manejar:
 * validaciones
 * acceso a datos
 * endpoints para interacción dinámica con el frontend
+* generación de archivos ICS
 
 ---
 
@@ -108,7 +111,7 @@ Contiene la información de las salas disponibles.
 | Nombre   | nvarchar(100) | Nombre de la sala            |
 | ColorHex | nvarchar(7)   | Color usado en el calendario |
 
-Salas incluidas:
+Salas incluidas por defecto:
 
 * **Sala Principal → #94A5A4**
 * **Sala Secundaria → #3788d8**
@@ -170,7 +173,7 @@ Estados calculados dinámicamente:
 | Finalizada | La reunión terminó       | ⚫ Negro    |
 | Cancelada  | Cancelada manualmente    | ⚪ Gris     |
 
-Estos estados **no se almacenan en la base de datos**.
+Estos estados **no se almacenan en la base de datos**, se calculan en el backend.
 
 ---
 
@@ -246,6 +249,7 @@ Funciones:
 * Cancelar reservas
 * Ver detalles
 * Visualizar estado dinámico
+* Descargar evento de calendario (.ICS)
 
 ---
 
@@ -258,9 +262,10 @@ Principales reglas:
 * No permitir reservas en el pasado
 * La hora de fin debe ser mayor que la de inicio
 * No permitir reservas superpuestas en la misma sala
+* Un usuario no puede reservar dos salas en el mismo horario
 * No permitir editar reservas finalizadas
-* No permitir nombres de usuario duplicados
-* Compatibilidad con **formato 12h y 24h**
+* Validación de existencia del usuario antes de guardar la reserva
+* Prevención de duplicados en usuarios
 
 Las horas se almacenan como:
 
@@ -301,6 +306,30 @@ Endpoint utilizado:
 
 ```
 /Reservas/GetReservas
+```
+
+---
+
+# Integración con Calendarios
+
+Cada reserva puede descargarse como evento de calendario.
+
+Archivo generado:
+
+```
+.ICS
+```
+
+Compatible con:
+
+* Google Calendar
+* Outlook
+* Apple Calendar
+
+Endpoint:
+
+```
+/Reservas/DescargarICS/{id}
 ```
 
 ---
@@ -350,14 +379,54 @@ Características:
 
 ---
 
-# Ejecución del Proyecto
+# Instalación y Ejecución
 
-## Ejecutar en Visual Studio
+## 1 Clonar el repositorio
 
-1. Abrir la solución
-2. Configurar la cadena de conexión en `appsettings.json`
-3. Ejecutar migraciones
-4. Presionar **F5**
+```
+git clone https://github.com/usuario/sala-reuniones.git
+```
+
+---
+
+## 2 Configurar cadena de conexión
+
+Editar:
+
+```
+appsettings.json
+```
+
+Ejemplo:
+
+```
+Server=localhost;
+Database=SalaReunionesDB;
+Trusted_Connection=True;
+TrustServerCertificate=True;
+```
+
+---
+
+## 3 Ejecutar migraciones
+
+```
+Update-Database
+```
+
+---
+
+## 4 Ejecutar el proyecto
+
+```
+F5
+```
+
+o
+
+```
+dotnet run
+```
 
 ---
 
@@ -365,7 +434,7 @@ Características:
 
 El sistema puede desplegarse en **Windows Server con IIS**.
 
-## 1. Instalar IIS
+## 1 Instalar IIS
 
 ```
 Administrador del Servidor
@@ -375,7 +444,7 @@ Administrador del Servidor
 
 ---
 
-## 2. Instalar .NET Hosting Bundle
+## 2 Instalar .NET Hosting Bundle
 
 Descargar:
 
@@ -391,7 +460,7 @@ iisreset
 
 ---
 
-## 3. Publicar el Proyecto
+## 3 Publicar el Proyecto
 
 En Visual Studio:
 
@@ -409,7 +478,7 @@ C:\Publicaciones\SalaReuniones
 
 ---
 
-## 4. Copiar al Servidor
+## 4 Copiar al Servidor
 
 ```
 C:\inetpub\SalaReuniones
@@ -417,7 +486,7 @@ C:\inetpub\SalaReuniones
 
 ---
 
-## 5. Crear Application Pool
+## 5 Crear Application Pool
 
 ```
 Nombre: SalaReunionesPool
@@ -427,7 +496,7 @@ Pipeline Mode: Integrated
 
 ---
 
-## 6. Crear Sitio Web
+## 6 Crear Sitio Web
 
 ```
 Site Name: SalaReuniones
@@ -438,7 +507,7 @@ Application Pool: SalaReunionesPool
 
 ---
 
-## 7. Permisos de Carpeta
+## 7 Permisos de Carpeta
 
 Asignar permisos a:
 
@@ -450,25 +519,6 @@ con **lectura y ejecución**.
 
 ---
 
-## 8. Configurar Base de Datos
-
-Editar:
-
-```
-appsettings.json
-```
-
-Ejemplo:
-
-```
-Server=SERVIDORSQL;
-Database=SalaReunionesDB;
-Trusted_Connection=True;
-TrustServerCertificate=True;
-```
-
----
-
 # Seguridad
 
 El sistema implementa:
@@ -477,6 +527,7 @@ El sistema implementa:
 * control de acceso por roles
 * protección **CSRF**
 * validaciones backend
+* control de integridad referencial en base de datos
 
 ---
 
@@ -493,4 +544,3 @@ Incluye herramientas modernas como:
 * administración avanzada de usuarios
 
 lo que permite su uso en **entornos corporativos e institucionales**.
-
