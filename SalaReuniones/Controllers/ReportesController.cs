@@ -243,14 +243,21 @@ namespace SalaReuniones.Controllers
                         col.Item().Row(row =>
                         {
                             if (logoBytes != null)
-                                row.ConstantItem(80).Image(logoBytes).FitArea();
-
-                            row.RelativeItem().Column(c =>
                             {
-                                c.Item().Text("SISTEMA SALA DE REUNIONES").FontSize(18).Bold();
-                                c.Item().Text("Reporte Administrativo").FontSize(12);
-                                c.Item().Text($"Generado el {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10);
-                            });
+                                row.ConstantItem(65)
+                                    .Height(60)
+                                    .Image(logoBytes)
+                                    .FitHeight();
+                            }
+
+                            row.RelativeItem()
+                                .PaddingLeft(8)
+                                .Column(c =>
+                                {
+                                    c.Item().Text("SISTEMA SALA DE REUNIONES").FontSize(18).Bold();
+                                    c.Item().Text("Reporte Administrativo").FontSize(12);
+                                    c.Item().Text($"Generado el {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10);
+                                });
                         });
 
                         col.Item().PaddingTop(5).LineHorizontal(1);

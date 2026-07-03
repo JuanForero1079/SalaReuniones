@@ -34,7 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="wwwroot\images\HaloLogoBlue.png">
+    <Content Update="wwwroot\images\HaloLogoBlues.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
