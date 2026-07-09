@@ -1,22 +1,96 @@
+/* ========================================================= */
+/* CONFIGURACIÓN GENERAL                                     */
+/* ========================================================= */
+
 html {
-  font-size: 14px;
+    font-size: 14px;
 }
+
+/* ========================================================= */
+/* DISEÑO RESPONSIVE                                         */
+/* ========================================================= */
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+
+    html {
+        font-size: 16px;
+    }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+/* ========================================================= */
+/* ESTILOS DE ENFOQUE (FOCUS)                                */
+/* Mejora la accesibilidad al navegar con teclado            */
+/* ========================================================= */
+
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
+
+/* ========================================================= */
+/* ESTRUCTURA GENERAL                                        */
+/* ========================================================= */
 
 html {
-  position: relative;
-  min-height: 100%;
+    position: relative;
+    min-height: 100%;
 }
 
 body {
-  margin-bottom: 60px;
+    margin-bottom: 60px;
 }
+
+/* ========================================================= */
+/* BARRA DE NAVEGACIÓN                                       */
+/* EFECTOS VISUALES                                          */
+/* ========================================================= */
+
+/* --------------------------------------------------------- */
+/* Enlaces del menú                                          */
+/* --------------------------------------------------------- */
+
+.navbar .nav-link {
+    border-radius: 8px;
+    padding: 0.5rem 0.9rem;
+    margin: 0 0.15rem;
+    transition: background-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+
+    /* --------------------------------------------------------- */
+    /* Efecto al pasar el cursor                                 */
+    /* --------------------------------------------------------- */
+
+    .navbar .nav-link:hover {
+        background-color: #0d6efd;
+        color: #ffffff !important;
+        transform: translateY(-2px);
+    }
+
+    /* --------------------------------------------------------- */
+    /* Página activa                                             */
+    /* --------------------------------------------------------- */
+
+    .navbar .nav-link.active {
+        background-color: #0d6efd;
+        color: #ffffff !important;
+    }
+
+/* --------------------------------------------------------- */
+/* Logo del sistema                                          */
+/* --------------------------------------------------------- */
+
+.navbar-brand {
+    font-weight: 600;
+    transition: transform 0.25s ease, color 0.25s ease;
+}
+
+    /* --------------------------------------------------------- */
+    /* Hover del logo                                            */
+    /* --------------------------------------------------------- */
+
+    .navbar-brand:hover {
+        transform: scale(1.05);
+    }

@@ -1,142 +1,233 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
+
     <!-- ========================================================= -->
     <!-- CONFIGURACIÓN GENERAL -->
     <!-- ========================================================= -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Título dinámico por vista -->
+    <!-- Título dinámico de la página -->
     <title>@ViewData["Title"] - SalaReuniones</title>
 
     <!-- ========================================================= -->
-    <!-- ESTILOS -->
+    <!-- HOJAS DE ESTILO -->
     <!-- ========================================================= -->
+    <!-- Bootstrap -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/SalaReuniones.styles.css" asp-append-version="true" />
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <!-- Estilos del proyecto -->
+    <link rel="stylesheet"
+          href="~/css/site.css"
+          asp-append-version="true" />
+
+    <link rel="stylesheet"
+          href="~/SalaReuniones.styles.css"
+          asp-append-version="true" />
+
 </head>
 
 <body>
 
     <!-- ========================================================= -->
-    <!-- NAVBAR SUPERIOR -->
+    <!-- BARRA DE NAVEGACIÓN -->
     <!-- ========================================================= -->
     <header>
+
         <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-3">
+
             <div class="container-fluid">
 
-                <!-- ================= LOGO ================= -->
-                <a class="navbar-brand"
+                <!-- ===================================================== -->
+                <!-- LOGO DEL SISTEMA -->
+                <!-- Redirige siempre al calendario -->
+                <!-- ===================================================== -->
+                <a class="navbar-brand fw-bold"
                    asp-controller="Reservas"
                    asp-action="Calendar">
-                     SalaReuniones
+
+                    SalaReuniones
+
                 </a>
 
-                <!-- Botón responsive (móvil) -->
+                <!-- ===================================================== -->
+                <!-- BOTÓN RESPONSIVE -->
+                <!-- ===================================================== -->
                 <button class="navbar-toggler"
                         type="button"
                         data-bs-toggle="collapse"
                         data-bs-target=".navbar-collapse">
+
                     <span class="navbar-toggler-icon"></span>
+
                 </button>
 
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
 
-                    <!-- ===================================================== -->
-                    <!-- MENÚ IZQUIERDO -->
-                    <!-- ===================================================== -->
+                    <!-- ================================================= -->
+                    <!-- MENÚ PRINCIPAL -->
+                    <!-- ================================================= -->
                     <ul class="navbar-nav flex-grow-1">
 
-                        <!-- LISTADO DE RESERVAS -->
+                        <!-- ============================================= -->
+                        <!-- CALENDARIO (Pantalla principal del sistema) -->
+                        <!-- ============================================= -->
                         <li class="nav-item">
+
+                            <a class="nav-link text-dark"
+                               asp-controller="Reservas"
+                               asp-action="Calendar">
+
+                                <i class="bi bi-calendar3"></i>
+                                Calendario
+
+                            </a>
+
+                        </li>
+
+                        <!-- ============================================= -->
+                        <!-- LISTADO DE RESERVAS -->
+                        <!-- ============================================= -->
+                        <li class="nav-item">
+
                             <a class="nav-link text-dark"
                                asp-controller="Reservas"
                                asp-action="Index">
-                                 Reservas
+
+                                <i class="bi bi-list-check"></i>
+                                Reservas
+
                             </a>
+
                         </li>
 
-                        <!-- CREAR RESERVA (solo usuarios autorizados) -->
+                        <!-- ============================================= -->
+                        <!-- CREAR RESERVA -->
+                        <!-- Solo Administrador y Usuario -->
+                        <!-- ============================================= -->
                         @if (User.IsInRole("Administrador") || User.IsInRole("Usuario"))
                         {
                             <li class="nav-item">
+
                                 <a class="nav-link text-dark"
                                    asp-controller="Reservas"
                                    asp-action="Create">
-                                     Crear Reserva
+
+                                    <i class="bi bi-calendar-plus"></i>
+                                    Crear Reserva
+
                                 </a>
+
                             </li>
                         }
 
+                        <!-- ============================================= -->
                         <!-- DASHBOARD ADMINISTRATIVO -->
+                        <!-- Solo Administradores -->
+                        <!-- ============================================= -->
                         @if (User.IsInRole("Administrador"))
                         {
                             <li class="nav-item">
+
                                 <a class="nav-link text-dark"
                                    asp-controller="Reportes"
                                    asp-action="Dashboard">
-                                     Reportes
+
+                                    <i class="bi bi-bar-chart"></i>
+                                    Dashboard
+
                                 </a>
+
                             </li>
                         }
 
-                        <!-- GESTIÓN DE USUARIOS -->
+                        <!-- ============================================= -->
+                        <!-- ADMINISTRACIÓN DE USUARIOS -->
+                        <!-- Solo Administradores -->
+                        <!-- ============================================= -->
                         @if (User.IsInRole("Administrador"))
                         {
                             <li class="nav-item">
+
                                 <a class="nav-link text-dark"
                                    asp-controller="Admin"
                                    asp-action="Index">
+
+                                    <i class="bi bi-people"></i>
                                     Usuarios
+
                                 </a>
+
                             </li>
                         }
 
                     </ul>
 
-                    <!-- ===================================================== -->
-                    <!-- LOGIN / LOGOUT (IDENTITY) -->
-                    <!-- IMPORTANTE: NO ELIMINAR -->
-                    <!-- ===================================================== -->
+                    <!-- ================================================= -->
+                    <!-- INFORMACIÓN DEL USUARIO -->
+                    <!-- Login / Logout (Identity) -->
+                    <!-- IMPORTANTE: No eliminar -->
+                    <!-- ================================================= -->
                     <ul class="navbar-nav ms-auto">
+
                         <partial name="_LoginPartial" />
+
                     </ul>
 
                 </div>
+
             </div>
+
         </nav>
+
     </header>
 
     <!-- ========================================================= -->
     <!-- CONTENIDO PRINCIPAL -->
-    <!-- Aquí se renderiza cada vista -->
     <!-- ========================================================= -->
     <div class="container">
+
         <main role="main" class="pb-3">
+
             @RenderBody()
+
         </main>
+
     </div>
 
     <!-- ========================================================= -->
-    <!-- FOOTER -->
+    <!-- PIE DE PÁGINA -->
     <!-- ========================================================= -->
     <footer class="border-top footer text-muted mt-4">
+
         <div class="container">
+
             &copy; 2026 - SalaReuniones
+
         </div>
+
     </footer>
 
     <!-- ========================================================= -->
     <!-- SCRIPTS -->
     <!-- ========================================================= -->
+    <!-- jQuery -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <!-- Bootstrap -->
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Scripts generales del proyecto -->
     <script src="~/js/site.js" asp-append-version="true"></script>
 
-    <!-- Scripts adicionales por vista -->
+    <!-- Scripts específicos de cada vista -->
     @await RenderSectionAsync("Scripts", required: false)
 
 </body>
+
 </html>

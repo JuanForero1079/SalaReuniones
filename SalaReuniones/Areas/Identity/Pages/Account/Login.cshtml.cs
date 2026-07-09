@@ -37,7 +37,7 @@ namespace SalaReuniones.Areas.Identity.Pages.Account
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
-            returnUrl ??= Url.Content("~/");
+            returnUrl ??= string.Empty;
 
             if (!ModelState.IsValid)
             {
@@ -56,7 +56,20 @@ namespace SalaReuniones.Areas.Identity.Pages.Account
             if (result.Succeeded)
             {
                 _logger.LogInformation("Usuario inició sesión correctamente.");
-                return LocalRedirect(returnUrl);
+
+                // Si el usuario intentó acceder a una página protegida,
+                // regresar allí.
+                if (!string.IsNullOrEmpty(returnUrl) &&
+                    Url.IsLocalUrl(returnUrl))
+                {
+                    return LocalRedirect(returnUrl);
+                }
+
+                // En un inicio de sesión normal,
+                // llevar directamente al calendario.
+                return RedirectToAction(
+                    "Calendar",
+                    "Reservas");
             }
 
             ModelState.AddModelError(string.Empty, "Usuario no válido.");

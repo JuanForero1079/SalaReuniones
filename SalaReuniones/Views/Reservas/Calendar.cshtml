@@ -5,24 +5,66 @@
     var salas = ViewData["Salas"] as SelectList;
 }
 
-<h2 class="text-center">Calendario de Reservas</h2>
+
+<!-- ============================================================
+     ENCABEZADO
+============================================================ -->
+<div class="card shadow-sm mb-4">
+
+    <div class="card-body">
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+
+            <div>
+                <h2 class="mb-1">
+                    Calendario de Reservas
+                </h2>
+
+                <p class="text-muted mb-0">
+                    Consulta la disponibilidad de las salas y crea una nueva reserva.
+                </p>
+            </div>
+
+            @if (User.IsInRole("Administrador") || User.IsInRole("Usuario"))
+            {
+                <a asp-action="Create"
+                   class="btn btn-success btn-lg shadow px-4">
+                    <i class="bi bi-calendar-plus"></i>
+                    Reservar Sala
+                </a>
+            }
+
+        </div>
+
+    </div>
+
+</div>
 
 <!-- ============================================================
      FILTRO POR SALA
 ============================================================ -->
-<div class="mb-3 text-center">
-    <label><strong>Filtrar por Sala:</strong></label>
-    <select id="filtroSala" class="form-select w-auto d-inline-block">
+<div class="mb-4">
+
+    <label for="filtroSala" class="form-label">
+        <strong>Filtrar por Sala</strong>
+    </label>
+
+    <select id="filtroSala" class="form-select">
+
         <option value="">Todas</option>
 
         @if (salas != null)
         {
             foreach (var sala in salas)
             {
-                <option value="@sala.Value">@sala.Text</option>
+                <option value="@sala.Value">
+                    @sala.Text
+                </option>
             }
         }
+
     </select>
+
 </div>
 
 <!-- ============================================================
@@ -195,7 +237,7 @@
 <style>
     #calendar {
         max-width: 1100px;
-        margin: 40px auto;
+        margin: 20px auto;
         min-height: 650px;
     }
 </style>
